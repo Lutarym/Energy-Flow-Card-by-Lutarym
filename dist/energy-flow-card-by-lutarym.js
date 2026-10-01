@@ -731,6 +731,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
         <div class="lef-scene">${this._svg()}</div>
       </ha-card>`;
     this.shadowRoot.replaceChildren(root);
+    this._rahmenFuer = null;
     this._klicks();
     this._startAnimation();
   }
@@ -1137,6 +1138,37 @@ class LutarymEnergyFlowCard extends HTMLElement {
 
       // Waermepumpe, Wallbox und Verbraucher haben eigene Leitungen aus dem Haus.
     }
+
+    this._passeRahmen();
+  }
+
+  /**
+   * Schneidet die Zeichnung auf den tatsaechlich sichtbaren Inhalt zu.
+   * Ausgeblendete Baugruppen und leere Ecken kosten so keinen Platz.
+   * Gerechnet wird nur, wenn sich die Menge der sichtbaren Teile aendert.
+   */
+  _passeRahmen() {
+    const svg = this.shadowRoot && this.shadowRoot.querySelector("svg");
+    if (!svg) return;
+    const sichtbar = Array.from(svg.querySelectorAll("[display]"))
+      .map((el) => `${el.id}:${el.getAttribute("display")}`)
+      .join("|");
+    if (sichtbar === this._rahmenFuer) return;
+    let box;
+    try {
+      box = svg.getBBox();
+    } catch (err) {
+      return;
+    }
+    // Noch nicht gezeichnet, etwa in einem verborgenen Tab: spaeter erneut.
+    if (!box || box.width < 10 || box.height < 10) return;
+    // Etwas Luft fuer den Leuchtschein um aktive Kreise.
+    const luft = 8;
+    svg.setAttribute("viewBox", [
+      Math.floor(box.x - luft), Math.floor(box.y - luft),
+      Math.ceil(box.width + 2 * luft), Math.ceil(box.height + 2 * luft),
+    ].join(" "));
+    this._rahmenFuer = sichtbar;
   }
 
   /* -------------------- Animation -------------------- */
@@ -1200,7 +1232,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
       .lef-root { height: 100%; }
       .lef {
         background: linear-gradient(180deg, #131A24 0%, #0D131B 100%);
-        color: #E8EDF4; padding: 6px 8px 8px; overflow: hidden; position: relative;
+        color: #E8EDF4; padding: 4px; overflow: hidden; position: relative;
         box-sizing: border-box; height: 100%;
         display: flex; flex-direction: column;
       }
