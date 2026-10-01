@@ -364,12 +364,19 @@ class LutarymEnergyFlowCard extends HTMLElement {
     this._render();
   }
 
+  /**
+   * Hoehe in Einheiten von 50 px fuer das Masonry-Dashboard, geschaetzt
+   * aus dem Seitenverhaeltnis der Zeichnung bei einer ueblichen Spalte.
+   */
   getCardSize() {
-    return 9;
+    const svg = this.shadowRoot && this.shadowRoot.querySelector("svg");
+    const vb = svg && svg.viewBox && svg.viewBox.baseVal;
+    const verhaeltnis = vb && vb.width ? vb.height / vb.width : G.H / G.W;
+    return Math.max(4, Math.ceil((480 * verhaeltnis + 20) / 50));
   }
 
   getGridOptions() {
-    return { columns: 12, min_columns: 6, rows: "auto" };
+    return { columns: 12, min_columns: 6, rows: "auto", min_rows: 4 };
   }
 
   get _quelle() {
@@ -714,6 +721,8 @@ class LutarymEnergyFlowCard extends HTMLElement {
     this._elCache.clear();
 
     const root = document.createElement("div");
+    // Die Huelle reicht die Hoehe des Platzes an die Karte weiter.
+    root.className = "lef-root";
     root.innerHTML = `
       <style>${this._css()}</style>
       <ha-card class="lef">
@@ -1184,18 +1193,29 @@ class LutarymEnergyFlowCard extends HTMLElement {
 
   _css() {
     return `
-      :host { display: block; }
+      /* Die Karte fuellt genau den Platz, den Home Assistant ihr gibt.
+         Ist die Hoehe fest vorgegeben, wird die Zeichnung verkleinert
+         statt ueber den Rand zu ragen. */
+      :host { display: block; height: 100%; }
+      .lef-root { height: 100%; }
       .lef {
         background: linear-gradient(180deg, #131A24 0%, #0D131B 100%);
         color: #E8EDF4; padding: 6px 8px 8px; overflow: hidden; position: relative;
+        box-sizing: border-box; height: 100%;
+        display: flex; flex-direction: column;
+      }
+      .lef-scene {
+        flex: 1 1 auto; min-height: 0;
+        display: flex; align-items: center; justify-content: center;
       }
       .lef-hint, .lef-demo {
         margin: 8px 8px 6px; padding: 10px 14px; border-radius: 10px; font-size: 14px;
+        flex: 0 0 auto;
       }
       .lef-hint { background: #2A2313; border: 1px solid #B07B2E; color: #F2DFB0; }
       .lef-demo { background: #16233A; border: 1px solid #3E6EA8; color: #B8D0EC; font-size: 13px; }
       .lef-hint[hidden], .lef-demo[hidden] { display: none; }
-      .lef-svg { width: 100%; height: auto; display: block; }
+      .lef-svg { width: 100%; height: auto; max-height: 100%; display: block; }
 
       .pipe-shell {
         fill: none; stroke: #0B1017; stroke-width: 12;
