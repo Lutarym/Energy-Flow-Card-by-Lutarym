@@ -78,7 +78,7 @@ consumers:
 
 ### Weitere Verbraucher
 
-Bis zu vier Einträge unter `consumers`, jeweils mit `entity`, `name` und `icon`.
+Bis zu vier Einträge unter `consumers`, jeweils mit `entity`, `name` und `icon`. Ein Verbraucher bleibt sichtbar, wenn seine Entität ausfällt, und zeigt dann `n. v.`.
 Symbole: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, `computer`, `licht`, `auto`.
 
 ### Optionen
@@ -88,6 +88,7 @@ Symbole: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, 
 | `language` | `auto` | `auto`, `de` oder `en` |
 | `demo` | `false` | Beispielwerte zum Ausprobieren |
 | `animate` | `true` | Animation zeigen |
+| `animation_speed` | `1` | Faktor für die Animationsgeschwindigkeit, 0,25 bis 3 |
 | `max_power` | `10000` | Leistung in W, bei der die Striche am schnellsten laufen |
 | `kw_threshold` | `1000` | Ab dieser Leistung in W wird in kW angezeigt |
 | `min_flow` | `10` | Kleinere Leistung in W gilt als Stillstand |

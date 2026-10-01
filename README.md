@@ -78,7 +78,7 @@ consumers:
 
 ### Further consumers
 
-Up to four entries under `consumers`, each with `entity`, `name` and `icon`.
+Up to four entries under `consumers`, each with `entity`, `name` and `icon`. A consumer stays visible when its entity is unavailable and shows `n/a`.
 Symbols: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, `computer`, `licht`, `auto`.
 
 ### Options
@@ -88,6 +88,7 @@ Symbols: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, 
 | `language` | `auto` | `auto`, `de` or `en` |
 | `demo` | `false` | Sample values for trying out |
 | `animate` | `true` | Show the animation |
+| `animation_speed` | `1` | Speed factor of the animation, 0.25 to 3 |
 | `max_power` | `10000` | Power in W at which the lines run fastest |
 | `kw_threshold` | `1000` | From this power in W the value is shown in kW |
 | `min_flow` | `10` | Lower power in W counts as idle |

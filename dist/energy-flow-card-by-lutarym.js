@@ -132,6 +132,7 @@ const TEXTE = {
     ruhe: "Ruhe",
     autarkie: "Autarkie",
     aus: "aus",
+    nv: "n. v.",
     hinweis: "Noch keine Entitäten zugeordnet. Bitte im Editor zuordnen oder den Demomodus einschalten.",
     demo: "Demomodus: Beispielwerte, keine echten Daten.",
     beschreibung: "Animierte Energieflusskarte mit PV, Netz, Akku, Haus, Wärmepumpe, Wallbox und weiteren Verbrauchern.",
@@ -152,6 +153,7 @@ const TEXTE = {
     ruhe: "idle",
     autarkie: "Self-sufficiency",
     aus: "off",
+    nv: "n/a",
     hinweis: "No entities assigned yet. Please assign them in the editor or switch on demo mode.",
     demo: "Demo mode: sample values, no real data.",
     beschreibung: "Animated energy flow card with solar, grid, battery, home, heat pump, wallbox and further consumers.",
@@ -170,6 +172,8 @@ const DEFAULT_CONFIG = {
   language: "auto",
   demo: false,
   animate: true,
+  // Faktor fuer die Animationsgeschwindigkeit, 1 ist normal.
+  animation_speed: 1,
   // Leistung, bei der die Striche am schnellsten laufen, in Watt.
   max_power: 10000,
   // Unterhalb dieser Leistung in Watt anzeigen, darueber in kW.
@@ -444,6 +448,15 @@ class LutarymEnergyFlowCard extends HTMLElement {
       return `${this._zahlText(v, stellen)}${einheit ? ` ${einheit}` : ""}`;
     }
     return `${roh}${einheit ? ` ${einheit}` : ""}`;
+  }
+
+  /**
+   * Wert eines Verbrauchers als Text. Faellt die Entitaet aus, bleibt
+   * der Knoten sichtbar und zeigt "n. v." statt zu verschwinden.
+   */
+  _verbraucherText(id, w, aktiv) {
+    if (w !== null && w !== undefined) return aktiv ? this._wText(w) : this._t("aus");
+    return this._zustand(id) ? this._t("nv") : "--";
   }
 
   _zahlText(v, stellen) {
@@ -1076,7 +1089,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
       this._zeige("ltg-bus_wb", zeigeWb);
 
       // Waermepumpe
-      this._setText("wp-v", an(m.wp) ? this._wText(m.wp) : m.wp === null ? "--" : this._t("aus"));
+      this._setText("wp-v", this._verbraucherText(this._id("heatpump"), m.wp, an(m.wp)));
       this._dimm("wp-v", !an(m.wp));
       this._setText("wp-s", zusatz("heatpump_secondary"));
       this._setAktiv("wp", an(m.wp), FARBE.wp);
@@ -1084,7 +1097,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
       this._setLeitung("bus_wp", zeigeWp ? m.wp : null, FARBE.wp);
 
       // Wallbox
-      this._setText("wb-v", an(m.wb) ? this._wText(m.wb) : m.wb === null ? "--" : this._t("aus"));
+      this._setText("wb-v", this._verbraucherText(this._id("wallbox"), m.wb, an(m.wb)));
       this._dimm("wb-v", !an(m.wb));
       this._setText("wb-s", zusatz("wallbox_secondary"));
       this._setAktiv("wb", an(m.wb), FARBE.wallbox);
@@ -1105,7 +1118,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
           if (i > 0) rechtsEx += v.w;
         }
         this._setLeitung(`exa${i}`, v.w, FARBE.verbraucher);
-        this._setText(`ex${i}-v`, v.w === null ? "--" : aktiv ? this._wText(v.w) : this._t("aus"));
+        this._setText(`ex${i}-v`, this._verbraucherText(v.id, v.w, aktiv));
         this._dimm(`ex${i}-v`, !aktiv);
         this._setAktiv(`ex${i}`, aktiv, FARBE.verbraucher);
       });
@@ -1129,8 +1142,10 @@ class LutarymEnergyFlowCard extends HTMLElement {
       // Nach einem Hintergrund-Tab nicht in einem Satz springen.
       const dt = Math.min(0.1, (jetzt - zuletzt) / 1000);
       zuletzt = jetzt;
-      this._animZeit += dt;
-      if (this._config && this._config.animate) this._animiere(dt);
+      // Eingestellter Faktor fuer die Geschwindigkeit aller Bewegungen.
+      const faktor = clamp(Number(this._config && this._config.animation_speed) || 1, 0.1, 5);
+      this._animZeit += dt * faktor;
+      if (this._config && this._config.animate) this._animiere(dt * faktor);
       this._animLoop = requestAnimationFrame(tick);
     };
     this._animLoop = requestAnimationFrame(tick);
@@ -1248,6 +1263,7 @@ const EDITOR_TEXTE = {
     language: "Sprache",
     demo: "Demomodus (Beispielwerte)",
     animate: "Animation",
+    animation_speed: "Animationsgeschwindigkeit (1 = normal)",
     max_power: "Leistung für höchstes Tempo (W)",
     kw_threshold: "Ab dieser Leistung in kW anzeigen (W)",
     min_flow: "Kleinere Leistung gilt als Stillstand (W)",
@@ -1304,6 +1320,7 @@ const EDITOR_TEXTE = {
     language: "Language",
     demo: "Demo mode (sample values)",
     animate: "Animation",
+    animation_speed: "Animation speed (1 = normal)",
     max_power: "Power for top speed (W)",
     kw_threshold: "Show in kW from this power (W)",
     min_flow: "Lower power counts as idle (W)",
@@ -1437,6 +1454,7 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
           { value: "en", label: "English" },
         ] } } },
         { name: "animate", selector: JA_NEIN },
+        { name: "animation_speed", selector: { number: { min: 0.25, max: 3, step: 0.25, mode: "slider" } } },
         { name: "show_autarky", selector: JA_NEIN },
         { name: "max_power", selector: { number: { min: 1000, max: 50000, step: 500, mode: "box" } } },
         { name: "kw_threshold", selector: { number: { min: 0, max: 10000, step: 100, mode: "box" } } },
