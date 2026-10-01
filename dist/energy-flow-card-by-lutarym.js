@@ -29,6 +29,7 @@ const EDITOR_TAG = "energy-flow-card-by-lutarym-editor";
  * ------------------------------------------------------------------ */
 const FARBE = {
   pv: "#FFC44D",
+  wr: "#F472B6",
   netzBezug: "#4D9BFF",
   netzEinspeisung: "#B48CFF",
   akku: "#5BE08F",
@@ -174,6 +175,8 @@ const DEFAULT_CONFIG = {
   animate: true,
   // Faktor fuer die Animationsgeschwindigkeit, 1 ist normal.
   animation_speed: 1,
+  // Faktor fuer alle Schriften der Karte, 1 ist normal.
+  font_scale: 1,
   // Leistung, bei der die Striche am schnellsten laufen, in Watt.
   max_power: 10000,
   // Unterhalb dieser Leistung in Watt anzeigen, darueber in kW.
@@ -392,6 +395,11 @@ class LutarymEnergyFlowCard extends HTMLElement {
 
   _t(schluessel) {
     return t(schluessel, this._sp());
+  }
+
+  /** Eingestellter Schriftfaktor, begrenzt auf einen lesbaren Bereich. */
+  _fs() {
+    return clamp(Number(this._config && this._config.font_scale) || 1, 0.7, 1.3);
   }
 
   /** Eigener Name gewinnt, sonst der Name in der Kartensprache. */
@@ -792,14 +800,15 @@ class LutarymEnergyFlowCard extends HTMLElement {
    */
   _knoten({ id, pos, r, label, labelUnten, entity, icon, inhalt }) {
     const radius = r || G.R;
-    const ly = labelUnten ? radius + (radius > 40 ? 20 : 14) : -(radius + 12);
+    const f = this._fs();
+    const ly = labelUnten ? radius + (radius > 40 ? 20 : 14) * f : -(radius + 12);
     return `
       <g class="node" id="dev-${id}" transform="translate(${pos.x} ${pos.y})" ${entity ? `data-entity="${entity}"` : ""}>
         <circle id="glow-${id}" class="node-glow" r="${radius}" opacity="0" filter="url(#glowBlur)"/>
         <circle class="node-bg" r="${radius}"/>
         <circle id="ring-${id}" class="node-ring" r="${radius}"/>
-        ${label ? `<rect class="label-bg" x="${-(String(label).length * (radius > 40 ? 4.6 : 3.4) + 8)}" y="${ly - 12}"
-              width="${String(label).length * (radius > 40 ? 9.2 : 6.8) + 16}" height="16" rx="8"/>` : ""}
+        ${label ? `<rect class="label-bg" x="${-(String(label).length * (radius > 40 ? 4.6 : 3.4) * f + 8)}" y="${ly - 12 * f}"
+              width="${String(label).length * (radius > 40 ? 9.2 : 6.8) * f + 16}" height="${16 * f}" rx="${8 * f}"/>` : ""}
         <text class="node-label${radius > 40 ? "" : " klein"}" id="${id}-label" y="${ly}" text-anchor="middle">${escapeHtml(label)}</text>
         <g class="icon" id="icon-${id}" transform="translate(0 ${radius > 40 ? -30 : -8})${radius > 40 ? "" : " scale(0.75)"}">${icon}</g>
         ${inhalt}
@@ -808,10 +817,15 @@ class LutarymEnergyFlowCard extends HTMLElement {
 
   /** Werte in einem grossen Knoten: Hauptwert und zwei kleine Zeilen. */
   _werte(id, klasse) {
+    // Die Zeilen ruecken mit der Schriftgroesse auseinander.
+    const f = this._fs();
+    const yWert = (3 + (f - 1) * 6).toFixed(1);
+    const yS = (Number(yWert) + 18 * f).toFixed(1);
+    const yS2 = (Number(yS) + 15 * f).toFixed(1);
     return `
-      <text class="value ${klasse || ""}" id="${id}-v" y="3" text-anchor="middle">--</text>
-      <text class="sub" id="${id}-s" y="21" text-anchor="middle"></text>
-      <text class="sub sub2" id="${id}-s2" y="36" text-anchor="middle"></text>`;
+      <text class="value ${klasse || ""}" id="${id}-v" y="${yWert}" text-anchor="middle">--</text>
+      <text class="sub" id="${id}-s" y="${yS}" text-anchor="middle"></text>
+      <text class="sub sub2" id="${id}-s2" y="${yS2}" text-anchor="middle"></text>`;
   }
 
   /** Ring aus Teilbogen, fuer Akkustand und die Herkunft des Hausstroms. */
@@ -845,7 +859,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
         pos: { x: G.EX_X[i], y: G.EX_Y },
         label: kuerzen(v.name, 11),
         icon: `<g id="ex${i}-sym">${SYMBOLE[v.symbol] || SYMBOLE.steckdose}</g>`,
-        inhalt: `<text class="value-k" id="ex${i}-v" y="16" text-anchor="middle">--</text>`,
+        inhalt: `<text class="value-k" id="ex${i}-v" y="${(14 + 2 * this._fs()).toFixed(1)}" text-anchor="middle">--</text>`,
       })).join("")}`;
 
     return `
@@ -1065,7 +1079,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
     this._zeige("dev-wr", m.hatWr);
     this._setText("wr-v", this._wText(m.wr === null ? null : Math.abs(m.wr)));
     this._setText("wr-s", zusatz("inverter_secondary"));
-    this._setAktiv("wr", an(Math.abs(m.wr || 0)), FARBE.pv);
+    this._setAktiv("wr", an(Math.abs(m.wr || 0)), FARBE.wr);
 
     /* ---- Leitungen ---- */
     this._zeige("ltg-pv_wr", m.hatPv);
@@ -1224,6 +1238,8 @@ class LutarymEnergyFlowCard extends HTMLElement {
   /* -------------------- Gestaltung -------------------- */
 
   _css() {
+    const f = this._fs();
+    const px = (n) => `${(n * f).toFixed(1)}px`;
     return `
       /* Die Karte fuellt genau den Platz, den Home Assistant ihr gibt.
          Ist die Hoehe fest vorgegeben, wird die Zeichnung verkleinert
@@ -1283,8 +1299,8 @@ class LutarymEnergyFlowCard extends HTMLElement {
         transition: stroke-dasharray 900ms ease, stroke-dashoffset 900ms ease, stroke 900ms ease;
       }
       .label-bg { fill: #10161F; }
-      .node-label { fill: #7E8CA0; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
-      .node-label.klein { font-size: 11px; letter-spacing: 0.02em; text-transform: none; }
+      .node-label { fill: #7E8CA0; font-size: ${px(12)}; letter-spacing: 0.08em; text-transform: uppercase; }
+      .node-label.klein { font-size: ${px(11)}; letter-spacing: 0.02em; text-transform: none; }
       .icon {
         color: #55657F; fill: none; stroke: currentColor; stroke-width: 1.8;
         stroke-linecap: round; stroke-linejoin: round; transition: color 500ms ease;
@@ -1293,9 +1309,9 @@ class LutarymEnergyFlowCard extends HTMLElement {
         font-family: ui-monospace, "SF Mono", Menlo, monospace;
         font-variant-numeric: tabular-nums;
       }
-      .value { fill: #E8EDF4; font-size: 18px; font-weight: 700; transition: fill 500ms ease; }
-      .value-k { fill: #E8EDF4; font-size: 9.5px; font-weight: 700; }
-      .sub { fill: #7E8CA0; font-size: 11px; transition: fill 500ms ease; }
+      .value { fill: #E8EDF4; font-size: ${px(18)}; font-weight: 700; transition: fill 500ms ease; }
+      .value-k { fill: #E8EDF4; font-size: ${px(9.5)}; font-weight: 700; }
+      .sub { fill: #7E8CA0; font-size: ${px(11)}; transition: fill 500ms ease; }
       .pv-c { fill: ${FARBE.pv}; }
       .wp-c { fill: ${FARBE.wp}; }
       .wb-c { fill: ${FARBE.wallbox}; }
@@ -1316,6 +1332,7 @@ const EDITOR_TEXTE = {
     demo: "Demomodus (Beispielwerte)",
     animate: "Animation",
     animation_speed: "Animationsgeschwindigkeit (1 = normal)",
+    font_scale: "Schriftgröße (1 = normal)",
     max_power: "Leistung für höchstes Tempo (W)",
     kw_threshold: "Ab dieser Leistung in kW anzeigen (W)",
     min_flow: "Kleinere Leistung gilt als Stillstand (W)",
@@ -1373,6 +1390,7 @@ const EDITOR_TEXTE = {
     demo: "Demo mode (sample values)",
     animate: "Animation",
     animation_speed: "Animation speed (1 = normal)",
+    font_scale: "Font size (1 = normal)",
     max_power: "Power for top speed (W)",
     kw_threshold: "Show in kW from this power (W)",
     min_flow: "Lower power counts as idle (W)",
@@ -1507,6 +1525,7 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
         ] } } },
         { name: "animate", selector: JA_NEIN },
         { name: "animation_speed", selector: { number: { min: 0.25, max: 3, step: 0.25, mode: "slider" } } },
+        { name: "font_scale", selector: { number: { min: 0.7, max: 1.3, step: 0.05, mode: "slider" } } },
         { name: "show_autarky", selector: JA_NEIN },
         { name: "max_power", selector: { number: { min: 1000, max: 50000, step: 500, mode: "box" } } },
         { name: "kw_threshold", selector: { number: { min: 0, max: 10000, step: 100, mode: "box" } } },

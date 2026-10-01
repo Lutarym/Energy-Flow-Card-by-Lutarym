@@ -89,6 +89,7 @@ Symbols: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, 
 | `demo` | `false` | Sample values for trying out |
 | `animate` | `true` | Show the animation |
 | `animation_speed` | `1` | Speed factor of the animation, 0.25 to 3 |
+| `font_scale` | `1` | Size factor for all text, 0.7 to 1.3 |
 | `max_power` | `10000` | Power in W at which the lines run fastest |
 | `kw_threshold` | `1000` | From this power in W the value is shown in kW |
 | `min_flow` | `10` | Lower power in W counts as idle |
