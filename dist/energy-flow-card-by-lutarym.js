@@ -165,8 +165,8 @@ const DEFAULT_CONFIG = {
   animation_speed: 1,
   // Faktor fuer alle Schriften der Karte, 1 ist normal.
   font_scale: 1,
-  // Nutzbare Kapazitaet des Akkus in kWh. 0 heisst: kein Inhalt in kWh.
-  battery_capacity: 0,
+  // Kapazitaet des Akkus in kWh, falls keine Entitaet sie liefert.
+  battery_capacity_kwh: 0,
   // Leistung, bei der die Striche am schnellsten laufen, in Watt.
   max_power: 10000,
   // Unterhalb dieser Leistung in Watt anzeigen, darueber in kW.
@@ -461,6 +461,28 @@ class LutarymEnergyFlowCard extends HTMLElement {
   _verbraucherText(id, w, aktiv) {
     if (w !== null && w !== undefined) return aktiv ? this._wText(w) : this._t("aus");
     return this._zustand(id) ? this._t("nv") : "--";
+  }
+
+  /**
+   * Maximale Kapazitaet des Akkus in kWh. Eine Entitaet gewinnt, etwa
+   * capacity_maximum der Fronius-Integration in Wh. Sonst der feste Wert.
+   */
+  _kapazitaet() {
+    const c = this._config;
+    if (c.demo) return 25.6;
+    const id = c.entities && c.entities.battery_capacity;
+    const st = id ? this._zustand(id) : null;
+    if (st) {
+      const v = parseFloat(st.state);
+      if (!Number.isNaN(v) && v > 0) {
+        const einheit = String((st.attributes && st.attributes.unit_of_measurement) || "")
+          .trim().toLowerCase();
+        if (einheit === "wh") return v / 1000;
+        if (einheit === "mwh") return v * 1000;
+        return v;
+      }
+    }
+    return Number(c.battery_capacity_kwh) || 0;
   }
 
   _zahlText(v, stellen) {
@@ -1027,15 +1049,15 @@ class LutarymEnergyFlowCard extends HTMLElement {
     if (m.laden !== null || m.entladen !== null) {
       akkuW = an(m.laden) ? m.laden : an(m.entladen) ? m.entladen : 0;
     }
-    this._setText("akku-s", this._wText(akkuW));
-    const akkuS = this._el("akku-s");
-    if (akkuS) akkuS.style.fill = an(akkuW) ? FARBE.akku : "";
-    // Inhalt des Akkus in kWh aus Ladestand und eingetragener Kapazitaet.
-    const kap = c.demo ? 25.6 : Number(c.battery_capacity) || 0;
-    this._setText("akku-s2", kap > 0 && m.soc !== null
+    // Statt der Leistung steht im Akku die gespeicherte Energie:
+    // Ladestand mal maximale Kapazitaet.
+    const kap = this._kapazitaet();
+    this._setText("akku-s", kap > 0 && m.soc !== null
       ? `${this._zahlText((clamp(m.soc, 0, 100) / 100) * kap, 1)} kWh`
       : "");
-    this._setText("akku-s3", zusatz("battery_secondary"));
+    const akkuS = this._el("akku-s");
+    if (akkuS) akkuS.style.fill = an(akkuW) ? FARBE.akku : "";
+    this._setText("akku-s2", zusatz("battery_secondary"));
     this._setBogen("akku-soc", 0, m.soc === null ? 0 : m.soc / 100, socFarbe(m.soc));
     this._setAktiv("akku", an(m.laden) || an(m.entladen), FARBE.akku);
     const akkuRing = this._el("ring-akku");
@@ -1371,7 +1393,8 @@ const EDITOR_TEXTE = {
     battery_charge: "oder getrennt: Laden",
     battery_discharge: "oder getrennt: Entladen",
     battery_soc: "Ladestand (%)",
-    battery_capacity: "Nutzbare Kapazität (kWh, 0 = Inhalt nicht anzeigen)",
+    battery_capacity: "Maximale Kapazität (Entität, z.B. Fronius capacity_maximum)",
+    battery_capacity_kwh: "oder fester Wert in kWh, falls keine Entität",
     battery_secondary: "Zusatzzeile (z.B. Temperatur)",
     name_battery: "Eigener Name",
     home: "Hausverbrauch (leer = wird berechnet)",
@@ -1429,7 +1452,8 @@ const EDITOR_TEXTE = {
     battery_charge: "or split: charge",
     battery_discharge: "or split: discharge",
     battery_soc: "State of charge (%)",
-    battery_capacity: "Usable capacity (kWh, 0 = do not show content)",
+    battery_capacity: "Maximum capacity (entity, e.g. Fronius capacity_maximum)",
+    battery_capacity_kwh: "or fixed value in kWh if no entity",
     battery_secondary: "Extra line (e.g. temperature)",
     name_battery: "Own name",
     home: "Home consumption (empty = calculated)",
@@ -1571,7 +1595,8 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
         { name: "battery_charge", ort: "e", selector: LEISTUNG },
         { name: "battery_discharge", ort: "e", selector: LEISTUNG },
         { name: "battery_soc", ort: "e", selector: LEISTUNG },
-        { name: "battery_capacity", selector: { number: { min: 0, max: 200, step: 0.1, mode: "box", unit_of_measurement: "kWh" } } },
+        { name: "battery_capacity", ort: "e", selector: LEISTUNG },
+        { name: "battery_capacity_kwh", selector: { number: { min: 0, max: 200, step: 0.1, mode: "box", unit_of_measurement: "kWh" } } },
         { name: "battery_secondary", ort: "e", selector: BELIEBIG },
         { name: "name_battery", selector: TEXT },
       ] },

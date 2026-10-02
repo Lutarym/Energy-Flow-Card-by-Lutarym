@@ -70,6 +70,7 @@ consumers:
 | `battery` | Akkuleistung, positiv ist Entladen |
 | `battery_charge`, `battery_discharge` | Statt `battery`: zwei getrennte Sensoren |
 | `battery_soc` | Ladestand des Akkus in % |
+| `battery_capacity` | Maximale Kapazität des Akkus in Wh oder kWh, z.B. Fronius `capacity_maximum`. Der Akku zeigt dann die gespeicherte Energie in kWh |
 | `inverter` | AC-Leistung des Wechselrichters. Leer: wird aus PV und Akku berechnet |
 | `home` | Hausverbrauch. Leer: wird aus PV, Netz und Akku berechnet |
 | `heatpump` | Leistung der Wärmepumpe |
@@ -90,7 +91,7 @@ Symbole: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, 
 | `animate` | `true` | Animation zeigen |
 | `animation_speed` | `1` | Faktor für die Animationsgeschwindigkeit, 0,25 bis 3 |
 | `font_scale` | `1` | Faktor für alle Schriften, 0,7 bis 1,3 |
-| `battery_capacity` | `0` | Nutzbare Kapazität des Akkus in kWh. Zeigt den Inhalt in kWh, 0 ist aus |
+| `battery_capacity_kwh` | `0` | Feste Kapazität des Akkus in kWh, falls keine Entität `battery_capacity` gesetzt ist |
 | `max_power` | `10000` | Leistung in W, bei der die Striche am schnellsten laufen |
 | `kw_threshold` | `1000` | Ab dieser Leistung in W wird in kW angezeigt |
 | `min_flow` | `10` | Kleinere Leistung in W gilt als Stillstand |

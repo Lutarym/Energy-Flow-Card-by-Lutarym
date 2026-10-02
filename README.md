@@ -70,6 +70,7 @@ consumers:
 | `battery` | Battery power, positive is discharge |
 | `battery_charge`, `battery_discharge` | Instead of `battery`: two separate sensors |
 | `battery_soc` | Battery state of charge in % |
+| `battery_capacity` | Maximum battery capacity in Wh or kWh, e.g. Fronius `capacity_maximum`. The battery then shows its stored energy in kWh |
 | `inverter` | Inverter AC power. Empty: calculated from solar and battery |
 | `home` | Home consumption. Empty: calculated from solar, grid and battery |
 | `heatpump` | Heat pump power |
@@ -90,7 +91,7 @@ Symbols: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, 
 | `animate` | `true` | Show the animation |
 | `animation_speed` | `1` | Speed factor of the animation, 0.25 to 3 |
 | `font_scale` | `1` | Size factor for all text, 0.7 to 1.3 |
-| `battery_capacity` | `0` | Usable battery capacity in kWh. Shows the content in kWh, 0 is off |
+| `battery_capacity_kwh` | `0` | Fixed battery capacity in kWh, used when no `battery_capacity` entity is set |
 | `max_power` | `10000` | Power in W at which the lines run fastest |
 | `kw_threshold` | `1000` | From this power in W the value is shown in kW |
 | `min_flow` | `10` | Lower power in W counts as idle |
