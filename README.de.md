@@ -13,7 +13,7 @@ Animierte Lovelace Karte für Home Assistant. Sie zeigt den Energiefluss zwische
 - Laufende Striche in der Farbe der Quelle, das Tempo folgt der Leistung
 - Minimalistisch: runde Knoten mit kleinen Symbolen, leuchtender Ring bei Betrieb
 - Sonnenstrahlen und Lüfter der Wärmepumpe drehen mit der Leistung, das Wallbox Symbol pulsiert beim Laden
-- Der Ring des Akkus zeigt den Ladestand, der Ring des Hauses die Herkunft des Stroms, dazu die Autarkie
+- Der Ring des Akkus zeigt den Ladestand, der Ring des Hauses die Herkunft des Stroms
 - Optionale Zusatzzeile je Baugruppe, zum Beispiel Ertrag heute, Vorlauf oder Ladestand des Autos
 - Klick auf eine Baugruppe öffnet ihre Entität in Home Assistant
 - Visueller Editor, Demomodus, Deutsch und Englisch
@@ -89,12 +89,13 @@ Symbole: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, 
 | `demo` | `false` | Beispielwerte zum Ausprobieren |
 | `animate` | `true` | Animation zeigen |
 | `animation_speed` | `1` | Faktor für die Animationsgeschwindigkeit, 0,25 bis 3 |
+| `font_scale` | `1` | Faktor für alle Schriften, 0,7 bis 1,3 |
+| `battery_capacity` | `0` | Nutzbare Kapazität des Akkus in kWh. Zeigt den Inhalt in kWh, 0 ist aus |
 | `max_power` | `10000` | Leistung in W, bei der die Striche am schnellsten laufen |
 | `kw_threshold` | `1000` | Ab dieser Leistung in W wird in kW angezeigt |
 | `min_flow` | `10` | Kleinere Leistung in W gilt als Stillstand |
 | `grid_invert` | `false` | Vorzeichen von `grid` umkehren |
 | `battery_invert` | `false` | Vorzeichen von `battery` umkehren |
-| `show_autarky` | `true` | Autarkie im Hausknoten zeigen |
 | `name_pv`, `name_inverter`, `name_grid`, `name_battery`, `name_home`, `name_heatpump`, `name_wallbox`, `name_consumers` | | Eigene Namen, leer nimmt die Kartensprache |
 
 ## Lizenz

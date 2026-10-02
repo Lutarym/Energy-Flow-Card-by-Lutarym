@@ -13,7 +13,7 @@ Animated Lovelace card for Home Assistant that shows the energy flow between sol
 - Running lines in the colour of the source, speed follows the power
 - Minimal design: round nodes with small symbols, glowing ring when active
 - Sun rays and heat pump fan turn with the power, wallbox symbol pulses while charging
-- Battery ring shows the state of charge, home ring shows where the power comes from, with self-sufficiency
+- Battery ring shows the state of charge, home ring shows where the power comes from
 - Optional extra line for each device, for example yield today, flow temperature or car state of charge
 - Click on a device opens its entity in Home Assistant
 - Visual editor, demo mode, English and German
@@ -89,12 +89,13 @@ Symbols: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, 
 | `demo` | `false` | Sample values for trying out |
 | `animate` | `true` | Show the animation |
 | `animation_speed` | `1` | Speed factor of the animation, 0.25 to 3 |
+| `font_scale` | `1` | Size factor for all text, 0.7 to 1.3 |
+| `battery_capacity` | `0` | Usable battery capacity in kWh. Shows the content in kWh, 0 is off |
 | `max_power` | `10000` | Power in W at which the lines run fastest |
 | `kw_threshold` | `1000` | From this power in W the value is shown in kW |
 | `min_flow` | `10` | Lower power in W counts as idle |
 | `grid_invert` | `false` | Invert the sign of `grid` |
 | `battery_invert` | `false` | Invert the sign of `battery` |
-| `show_autarky` | `true` | Show the self-sufficiency in the home node |
 | `name_pv`, `name_inverter`, `name_grid`, `name_battery`, `name_home`, `name_heatpump`, `name_wallbox`, `name_consumers` | | Own names, empty uses the card language |
 
 ## License

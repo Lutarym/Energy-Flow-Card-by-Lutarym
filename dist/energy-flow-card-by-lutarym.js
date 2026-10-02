@@ -29,6 +29,7 @@ const EDITOR_TAG = "energy-flow-card-by-lutarym-editor";
  * ------------------------------------------------------------------ */
 const FARBE = {
   pv: "#FFC44D",
+  wr: "#F472B6",
   netzBezug: "#4D9BFF",
   netzEinspeisung: "#B48CFF",
   akku: "#5BE08F",
@@ -125,12 +126,6 @@ const TEXTE = {
     wp: "Wärmepumpe",
     wallbox: "Wallbox",
     verbraucher: "Verbraucher",
-    bezug: "Bezug",
-    einspeisung: "Einspeisung",
-    laedt: "lädt",
-    entlaedt: "entlädt",
-    ruhe: "Ruhe",
-    autarkie: "Autarkie",
     aus: "aus",
     nv: "n. v.",
     hinweis: "Noch keine Entitäten zugeordnet. Bitte im Editor zuordnen oder den Demomodus einschalten.",
@@ -146,12 +141,6 @@ const TEXTE = {
     wp: "Heat pump",
     wallbox: "Wallbox",
     verbraucher: "Consumers",
-    bezug: "Import",
-    einspeisung: "Export",
-    laedt: "charging",
-    entlaedt: "discharging",
-    ruhe: "idle",
-    autarkie: "Self-sufficiency",
     aus: "off",
     nv: "n/a",
     hinweis: "No entities assigned yet. Please assign them in the editor or switch on demo mode.",
@@ -174,6 +163,10 @@ const DEFAULT_CONFIG = {
   animate: true,
   // Faktor fuer die Animationsgeschwindigkeit, 1 ist normal.
   animation_speed: 1,
+  // Faktor fuer alle Schriften der Karte, 1 ist normal.
+  font_scale: 1,
+  // Nutzbare Kapazitaet des Akkus in kWh. 0 heisst: kein Inhalt in kWh.
+  battery_capacity: 0,
   // Leistung, bei der die Striche am schnellsten laufen, in Watt.
   max_power: 10000,
   // Unterhalb dieser Leistung in Watt anzeigen, darueber in kW.
@@ -182,7 +175,6 @@ const DEFAULT_CONFIG = {
   min_flow: 10,
   grid_invert: false,
   battery_invert: false,
-  show_autarky: true,
   entities: {},
   consumers: [],
 };
@@ -364,12 +356,19 @@ class LutarymEnergyFlowCard extends HTMLElement {
     this._render();
   }
 
+  /**
+   * Hoehe in Einheiten von 50 px fuer das Masonry-Dashboard, geschaetzt
+   * aus dem Seitenverhaeltnis der Zeichnung bei einer ueblichen Spalte.
+   */
   getCardSize() {
-    return 9;
+    const svg = this.shadowRoot && this.shadowRoot.querySelector("svg");
+    const vb = svg && svg.viewBox && svg.viewBox.baseVal;
+    const verhaeltnis = vb && vb.width ? vb.height / vb.width : G.H / G.W;
+    return Math.max(4, Math.ceil((480 * verhaeltnis + 20) / 50));
   }
 
   getGridOptions() {
-    return { columns: 12, min_columns: 6, rows: "auto" };
+    return { columns: 12, min_columns: 6, rows: "auto", min_rows: 4 };
   }
 
   get _quelle() {
@@ -385,6 +384,11 @@ class LutarymEnergyFlowCard extends HTMLElement {
 
   _t(schluessel) {
     return t(schluessel, this._sp());
+  }
+
+  /** Eingestellter Schriftfaktor, begrenzt auf einen lesbaren Bereich. */
+  _fs() {
+    return clamp(Number(this._config && this._config.font_scale) || 1, 0.7, 1.3);
   }
 
   /** Eigener Name gewinnt, sonst der Name in der Kartensprache. */
@@ -588,10 +592,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
     ["pv", "grid", "battery", "heatpump", "wallbox", "c0", "c1", "c2", "c3"].forEach((k) => setze(k, 0));
     setze("battery_soc", 62, { unit_of_measurement: "%" });
     setze("pv_secondary", 18.4, { unit_of_measurement: "kWh" });
-    setze("heatpump_secondary", 38.5, { unit_of_measurement: "°C" });
     setze("wallbox_secondary", 54, { unit_of_measurement: "%" });
-    setze("grid_secondary", 0.287, { unit_of_measurement: "€/kWh" });
-    setze("battery_secondary", 21.3, { unit_of_measurement: "°C" });
     this._demo = {
       states,
       soc: 62,
@@ -714,6 +715,8 @@ class LutarymEnergyFlowCard extends HTMLElement {
     this._elCache.clear();
 
     const root = document.createElement("div");
+    // Die Huelle reicht die Hoehe des Platzes an die Karte weiter.
+    root.className = "lef-root";
     root.innerHTML = `
       <style>${this._css()}</style>
       <ha-card class="lef">
@@ -722,6 +725,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
         <div class="lef-scene">${this._svg()}</div>
       </ha-card>`;
     this.shadowRoot.replaceChildren(root);
+    this._rahmenFuer = null;
     this._klicks();
     this._startAnimation();
   }
@@ -782,14 +786,15 @@ class LutarymEnergyFlowCard extends HTMLElement {
    */
   _knoten({ id, pos, r, label, labelUnten, entity, icon, inhalt }) {
     const radius = r || G.R;
-    const ly = labelUnten ? radius + (radius > 40 ? 20 : 14) : -(radius + 12);
+    const f = this._fs();
+    const ly = labelUnten ? radius + (radius > 40 ? 20 : 14) * f : -(radius + 12);
     return `
       <g class="node" id="dev-${id}" transform="translate(${pos.x} ${pos.y})" ${entity ? `data-entity="${entity}"` : ""}>
         <circle id="glow-${id}" class="node-glow" r="${radius}" opacity="0" filter="url(#glowBlur)"/>
         <circle class="node-bg" r="${radius}"/>
         <circle id="ring-${id}" class="node-ring" r="${radius}"/>
-        ${label ? `<rect class="label-bg" x="${-(String(label).length * (radius > 40 ? 4.6 : 3.4) + 8)}" y="${ly - 12}"
-              width="${String(label).length * (radius > 40 ? 9.2 : 6.8) + 16}" height="16" rx="8"/>` : ""}
+        ${label ? `<rect class="label-bg" x="${-(String(label).length * (radius > 40 ? 4.6 : 3.4) * f + 8)}" y="${ly - 12 * f}"
+              width="${String(label).length * (radius > 40 ? 9.2 : 6.8) * f + 16}" height="${16 * f}" rx="${8 * f}"/>` : ""}
         <text class="node-label${radius > 40 ? "" : " klein"}" id="${id}-label" y="${ly}" text-anchor="middle">${escapeHtml(label)}</text>
         <g class="icon" id="icon-${id}" transform="translate(0 ${radius > 40 ? -30 : -8})${radius > 40 ? "" : " scale(0.75)"}">${icon}</g>
         ${inhalt}
@@ -798,10 +803,16 @@ class LutarymEnergyFlowCard extends HTMLElement {
 
   /** Werte in einem grossen Knoten: Hauptwert und zwei kleine Zeilen. */
   _werte(id, klasse) {
+    // Die Zeilen ruecken mit der Schriftgroesse auseinander.
+    const f = this._fs();
+    const yWert = (3 + (f - 1) * 6).toFixed(1);
+    const yS = (Number(yWert) + 18 * f).toFixed(1);
+    const yS2 = (Number(yS) + 15 * f).toFixed(1);
     return `
-      <text class="value ${klasse || ""}" id="${id}-v" y="3" text-anchor="middle">--</text>
-      <text class="sub" id="${id}-s" y="21" text-anchor="middle"></text>
-      <text class="sub sub2" id="${id}-s2" y="36" text-anchor="middle"></text>`;
+      <text class="value ${klasse || ""}" id="${id}-v" y="${yWert}" text-anchor="middle">--</text>
+      <text class="sub" id="${id}-s" y="${yS}" text-anchor="middle"></text>
+      <text class="sub sub2" id="${id}-s2" y="${yS2}" text-anchor="middle"></text>
+      <text class="sub sub2" id="${id}-s3" y="${yS2}" text-anchor="middle"></text>`;
   }
 
   /** Ring aus Teilbogen, fuer Akkustand und die Herkunft des Hausstroms. */
@@ -835,7 +846,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
         pos: { x: G.EX_X[i], y: G.EX_Y },
         label: kuerzen(v.name, 11),
         icon: `<g id="ex${i}-sym">${SYMBOLE[v.symbol] || SYMBOLE.steckdose}</g>`,
-        inhalt: `<text class="value-k" id="ex${i}-v" y="16" text-anchor="middle">--</text>`,
+        inhalt: `<text class="value-k" id="ex${i}-v" y="${(14 + 2 * this._fs()).toFixed(1)}" text-anchor="middle">--</text>`,
       })).join("")}`;
 
     return `
@@ -1004,26 +1015,27 @@ class LutarymEnergyFlowCard extends HTMLElement {
     this._setText("netz-v", this._wText(netzW));
     const netzV = this._el("netz-v");
     if (netzV) netzV.style.fill = an(netzW) ? netzFarbe : "";
-    this._setText("netz-s", an(netzW) ? this._t(einspeisen ? "einspeisung" : "bezug") : "");
+    // Ob bezogen oder eingespeist wird, zeigt die Laufrichtung der Leitung.
     this._setText("netz-s2", zusatz("grid_secondary"));
     this._setAktiv("netz", an(netzW), netzFarbe);
 
     /* ---- Akku ---- */
     this._zeige("dev-akku", m.hatAkku);
     this._setText("akku-v", m.soc === null ? "--" : `${Math.round(m.soc)} %`);
+    // Ob geladen oder entladen wird, zeigt die Laufrichtung der Leitung.
     let akkuW = null;
-    let status = "";
     if (m.laden !== null || m.entladen !== null) {
-      if (an(m.laden)) { akkuW = m.laden; status = this._t("laedt"); }
-      else if (an(m.entladen)) { akkuW = m.entladen; status = this._t("entlaedt"); }
-      else { akkuW = 0; status = this._t("ruhe"); }
+      akkuW = an(m.laden) ? m.laden : an(m.entladen) ? m.entladen : 0;
     }
     this._setText("akku-s", this._wText(akkuW));
     const akkuS = this._el("akku-s");
     if (akkuS) akkuS.style.fill = an(akkuW) ? FARBE.akku : "";
-    // Zustand und Zusatzzeile nur gemeinsam, wenn beides in den Kreis passt.
-    const akkuZeile = [status, zusatz("battery_secondary")].filter(Boolean).join(" · ");
-    this._setText("akku-s2", akkuZeile.length <= 13 ? akkuZeile : status);
+    // Inhalt des Akkus in kWh aus Ladestand und eingetragener Kapazitaet.
+    const kap = c.demo ? 25.6 : Number(c.battery_capacity) || 0;
+    this._setText("akku-s2", kap > 0 && m.soc !== null
+      ? `${this._zahlText((clamp(m.soc, 0, 100) / 100) * kap, 1)} kWh`
+      : "");
+    this._setText("akku-s3", zusatz("battery_secondary"));
     this._setBogen("akku-soc", 0, m.soc === null ? 0 : m.soc / 100, socFarbe(m.soc));
     this._setAktiv("akku", an(m.laden) || an(m.entladen), FARBE.akku);
     const akkuRing = this._el("ring-akku");
@@ -1041,11 +1053,8 @@ class LutarymEnergyFlowCard extends HTMLElement {
       this._setBogen("seg-pv", 0, aPv);
       this._setBogen("seg-akku", aPv, aAkku);
       this._setBogen("seg-netz", aPv + aAkku, aNetz);
-      const aut = clamp((aPv + aAkku) * 100, 0, 100);
-      this._setText("haus-s", c.show_autarky !== false ? `${this._t("autarkie")} ${Math.round(aut)} %` : "");
     } else {
       ["seg-pv", "seg-akku", "seg-netz"].forEach((id) => this._setBogen(id, 0, 0));
-      this._setText("haus-s", "");
     }
     // Das Haus bekommt keinen eigenen Ring, die Herkunftsboegen sind sein Ring.
     const hausIcon = this._el("icon-haus");
@@ -1055,7 +1064,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
     this._zeige("dev-wr", m.hatWr);
     this._setText("wr-v", this._wText(m.wr === null ? null : Math.abs(m.wr)));
     this._setText("wr-s", zusatz("inverter_secondary"));
-    this._setAktiv("wr", an(Math.abs(m.wr || 0)), FARBE.pv);
+    this._setAktiv("wr", an(Math.abs(m.wr || 0)), FARBE.wr);
 
     /* ---- Leitungen ---- */
     this._zeige("ltg-pv_wr", m.hatPv);
@@ -1128,6 +1137,69 @@ class LutarymEnergyFlowCard extends HTMLElement {
 
       // Waermepumpe, Wallbox und Verbraucher haben eigene Leitungen aus dem Haus.
     }
+
+    ["pv", "wr", "akku", "netz", "haus", "wp", "wb"].forEach((id) => this._zentriere(id));
+    this._passeRahmen();
+  }
+
+  /**
+   * Setzt Symbol und Textzeilen eines grossen Kreises als Block in die
+   * Mitte. Leere Zeilen zaehlen nicht mit, so steht der Inhalt immer
+   * mittig, egal ob eine oder drei Zeilen belegt sind.
+   */
+  _zentriere(id) {
+    const icon = this._el(`icon-${id}`);
+    if (!icon) return;
+    const f = this._fs();
+    const SYMBOL = 24;
+    const ABSTAND = 5 * f;
+    // Hoehe und Abstand der Grundlinie von der Oberkante je Zeile.
+    const zeilen = [
+      { el: this._el(`${id}-v`), hoehe: 21 * f, grund: 16 * f },
+      { el: this._el(`${id}-s`), hoehe: 15 * f, grund: 12 * f },
+      { el: this._el(`${id}-s2`), hoehe: 15 * f, grund: 12 * f },
+      { el: this._el(`${id}-s3`), hoehe: 15 * f, grund: 12 * f },
+    ].filter((z) => z.el && z.el.textContent !== "");
+    const gesamt = SYMBOL + ABSTAND + zeilen.reduce((a, z) => a + z.hoehe, 0);
+    const schluessel = zeilen.map((z) => z.el.id).join("|");
+    if (icon.dataset.layout === schluessel) return;
+    icon.dataset.layout = schluessel;
+    let y = -gesamt / 2;
+    icon.setAttribute("transform", `translate(0 ${(y + SYMBOL / 2).toFixed(1)})`);
+    y += SYMBOL + ABSTAND;
+    zeilen.forEach((z) => {
+      z.el.setAttribute("y", (y + z.grund).toFixed(1));
+      y += z.hoehe;
+    });
+  }
+
+  /**
+   * Schneidet die Zeichnung auf den tatsaechlich sichtbaren Inhalt zu.
+   * Ausgeblendete Baugruppen und leere Ecken kosten so keinen Platz.
+   * Gerechnet wird nur, wenn sich die Menge der sichtbaren Teile aendert.
+   */
+  _passeRahmen() {
+    const svg = this.shadowRoot && this.shadowRoot.querySelector("svg");
+    if (!svg) return;
+    const sichtbar = Array.from(svg.querySelectorAll("[display]"))
+      .map((el) => `${el.id}:${el.getAttribute("display")}`)
+      .join("|");
+    if (sichtbar === this._rahmenFuer) return;
+    let box;
+    try {
+      box = svg.getBBox();
+    } catch (err) {
+      return;
+    }
+    // Noch nicht gezeichnet, etwa in einem verborgenen Tab: spaeter erneut.
+    if (!box || box.width < 10 || box.height < 10) return;
+    // Etwas Luft fuer den Leuchtschein um aktive Kreise.
+    const luft = 8;
+    svg.setAttribute("viewBox", [
+      Math.floor(box.x - luft), Math.floor(box.y - luft),
+      Math.ceil(box.width + 2 * luft), Math.ceil(box.height + 2 * luft),
+    ].join(" "));
+    this._rahmenFuer = sichtbar;
   }
 
   /* -------------------- Animation -------------------- */
@@ -1183,19 +1255,32 @@ class LutarymEnergyFlowCard extends HTMLElement {
   /* -------------------- Gestaltung -------------------- */
 
   _css() {
+    const f = this._fs();
+    const px = (n) => `${(n * f).toFixed(1)}px`;
     return `
-      :host { display: block; }
+      /* Die Karte fuellt genau den Platz, den Home Assistant ihr gibt.
+         Ist die Hoehe fest vorgegeben, wird die Zeichnung verkleinert
+         statt ueber den Rand zu ragen. */
+      :host { display: block; height: 100%; }
+      .lef-root { height: 100%; }
       .lef {
         background: linear-gradient(180deg, #131A24 0%, #0D131B 100%);
-        color: #E8EDF4; padding: 6px 8px 8px; overflow: hidden; position: relative;
+        color: #E8EDF4; padding: 4px; overflow: hidden; position: relative;
+        box-sizing: border-box; height: 100%;
+        display: flex; flex-direction: column;
+      }
+      .lef-scene {
+        flex: 1 1 auto; min-height: 0;
+        display: flex; align-items: center; justify-content: center;
       }
       .lef-hint, .lef-demo {
         margin: 8px 8px 6px; padding: 10px 14px; border-radius: 10px; font-size: 14px;
+        flex: 0 0 auto;
       }
       .lef-hint { background: #2A2313; border: 1px solid #B07B2E; color: #F2DFB0; }
       .lef-demo { background: #16233A; border: 1px solid #3E6EA8; color: #B8D0EC; font-size: 13px; }
       .lef-hint[hidden], .lef-demo[hidden] { display: none; }
-      .lef-svg { width: 100%; height: auto; display: block; }
+      .lef-svg { width: 100%; height: auto; max-height: 100%; display: block; }
 
       .pipe-shell {
         fill: none; stroke: #0B1017; stroke-width: 12;
@@ -1231,8 +1316,8 @@ class LutarymEnergyFlowCard extends HTMLElement {
         transition: stroke-dasharray 900ms ease, stroke-dashoffset 900ms ease, stroke 900ms ease;
       }
       .label-bg { fill: #10161F; }
-      .node-label { fill: #7E8CA0; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
-      .node-label.klein { font-size: 11px; letter-spacing: 0.02em; text-transform: none; }
+      .node-label { fill: #7E8CA0; font-size: ${px(12)}; letter-spacing: 0.08em; text-transform: uppercase; }
+      .node-label.klein { font-size: ${px(11)}; letter-spacing: 0.02em; text-transform: none; }
       .icon {
         color: #55657F; fill: none; stroke: currentColor; stroke-width: 1.8;
         stroke-linecap: round; stroke-linejoin: round; transition: color 500ms ease;
@@ -1241,9 +1326,9 @@ class LutarymEnergyFlowCard extends HTMLElement {
         font-family: ui-monospace, "SF Mono", Menlo, monospace;
         font-variant-numeric: tabular-nums;
       }
-      .value { fill: #E8EDF4; font-size: 18px; font-weight: 700; transition: fill 500ms ease; }
-      .value-k { fill: #E8EDF4; font-size: 9.5px; font-weight: 700; }
-      .sub { fill: #7E8CA0; font-size: 11px; transition: fill 500ms ease; }
+      .value { fill: #E8EDF4; font-size: ${px(18)}; font-weight: 700; transition: fill 500ms ease; }
+      .value-k { fill: #E8EDF4; font-size: ${px(9.5)}; font-weight: 700; }
+      .sub { fill: #7E8CA0; font-size: ${px(11)}; transition: fill 500ms ease; }
       .pv-c { fill: ${FARBE.pv}; }
       .wp-c { fill: ${FARBE.wp}; }
       .wb-c { fill: ${FARBE.wallbox}; }
@@ -1264,10 +1349,10 @@ const EDITOR_TEXTE = {
     demo: "Demomodus (Beispielwerte)",
     animate: "Animation",
     animation_speed: "Animationsgeschwindigkeit (1 = normal)",
+    font_scale: "Schriftgröße (1 = normal)",
     max_power: "Leistung für höchstes Tempo (W)",
     kw_threshold: "Ab dieser Leistung in kW anzeigen (W)",
     min_flow: "Kleinere Leistung gilt als Stillstand (W)",
-    show_autarky: "Autarkie im Haus anzeigen",
     inverter: "AC-Leistung Wechselrichter (leer = wird berechnet)",
     inverter_secondary: "Zusatzzeile (z.B. Temperatur)",
     name_inverter: "Eigener Name",
@@ -1286,6 +1371,7 @@ const EDITOR_TEXTE = {
     battery_charge: "oder getrennt: Laden",
     battery_discharge: "oder getrennt: Entladen",
     battery_soc: "Ladestand (%)",
+    battery_capacity: "Nutzbare Kapazität (kWh, 0 = Inhalt nicht anzeigen)",
     battery_secondary: "Zusatzzeile (z.B. Temperatur)",
     name_battery: "Eigener Name",
     home: "Hausverbrauch (leer = wird berechnet)",
@@ -1321,10 +1407,10 @@ const EDITOR_TEXTE = {
     demo: "Demo mode (sample values)",
     animate: "Animation",
     animation_speed: "Animation speed (1 = normal)",
+    font_scale: "Font size (1 = normal)",
     max_power: "Power for top speed (W)",
     kw_threshold: "Show in kW from this power (W)",
     min_flow: "Lower power counts as idle (W)",
-    show_autarky: "Show self-sufficiency in home",
     inverter: "Inverter AC power (empty = calculated)",
     inverter_secondary: "Extra line (e.g. temperature)",
     name_inverter: "Own name",
@@ -1343,6 +1429,7 @@ const EDITOR_TEXTE = {
     battery_charge: "or split: charge",
     battery_discharge: "or split: discharge",
     battery_soc: "State of charge (%)",
+    battery_capacity: "Usable capacity (kWh, 0 = do not show content)",
     battery_secondary: "Extra line (e.g. temperature)",
     name_battery: "Own name",
     home: "Home consumption (empty = calculated)",
@@ -1455,7 +1542,7 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
         ] } } },
         { name: "animate", selector: JA_NEIN },
         { name: "animation_speed", selector: { number: { min: 0.25, max: 3, step: 0.25, mode: "slider" } } },
-        { name: "show_autarky", selector: JA_NEIN },
+        { name: "font_scale", selector: { number: { min: 0.7, max: 1.3, step: 0.05, mode: "slider" } } },
         { name: "max_power", selector: { number: { min: 1000, max: 50000, step: 500, mode: "box" } } },
         { name: "kw_threshold", selector: { number: { min: 0, max: 10000, step: 100, mode: "box" } } },
         { name: "min_flow", selector: { number: { min: 0, max: 500, step: 1, mode: "box" } } },
@@ -1484,6 +1571,7 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
         { name: "battery_charge", ort: "e", selector: LEISTUNG },
         { name: "battery_discharge", ort: "e", selector: LEISTUNG },
         { name: "battery_soc", ort: "e", selector: LEISTUNG },
+        { name: "battery_capacity", selector: { number: { min: 0, max: 200, step: 0.1, mode: "box", unit_of_measurement: "kWh" } } },
         { name: "battery_secondary", ort: "e", selector: BELIEBIG },
         { name: "name_battery", selector: TEXT },
       ] },
