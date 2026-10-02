@@ -91,6 +91,7 @@ Symbols: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, 
 | `animate` | `true` | Show the animation |
 | `animation_speed` | `1` | Speed factor of the animation, 0.25 to 3 |
 | `font_scale` | `1` | Size factor for all text, 0.7 to 1.3 |
+| `animation_style` | `striche` | Line animation: `striche` (dashes), `punkte` (dots), `perlen` (pearls), `lang` (long dashes), `komet` (comet), `morse`, `lauflicht` (running light), `neon`, `puls` (pulse), `blitz` (lightning) |
 | `battery_capacity_kwh` | `0` | Fixed battery capacity in kWh, used when no `battery_capacity` entity is set |
 | `max_power` | `10000` | Power in W at which the lines run fastest |
 | `kw_threshold` | `1000` | From this power in W the value is shown in kW |

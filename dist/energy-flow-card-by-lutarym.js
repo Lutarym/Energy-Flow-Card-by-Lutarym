@@ -113,6 +113,28 @@ const ICON = {
 const STRICH_PERIODE = 20;
 
 /* ------------------------------------------------------------------ *
+ *  Animationsstile der Leitungen
+ *  dash:    Strich und Luecke, ein Durchlauf ist die Summe aller Werte
+ *  breite:  Strichstaerke, schein: Breite und Deckkraft der Leuchtspur
+ *  tempo:   Faktor auf die Laufgeschwindigkeit
+ *  atmen:   die Leuchtspur pulsiert zusaetzlich
+ *  zucken:  die Striche flackern unregelmaessig wie Strom
+ * ------------------------------------------------------------------ */
+const STILE = {
+  striche:  { dash: [6, 14],               breite: 3.5, schein: [9, 0.18],  tempo: 1 },
+  punkte:   { dash: [0.1, 11],             breite: 5,   schein: [11, 0.16], tempo: 1 },
+  perlen:   { dash: [0.1, 26],             breite: 8,   schein: [16, 0.22], tempo: 0.9 },
+  lang:     { dash: [16, 10],              breite: 3,   schein: [9, 0.15],  tempo: 1.1 },
+  komet:    { dash: [1, 3, 2, 3, 4, 3, 9, 34], breite: 3.5, schein: [10, 0.2], tempo: 1.3 },
+  morse:    { dash: [10, 6, 0.1, 6],       breite: 3.5, schein: [9, 0.16],  tempo: 1 },
+  lauflicht:{ dash: [26, 150],             breite: 4,   schein: [14, 0.35], tempo: 1.8 },
+  neon:     { dash: [6, 14],               breite: 3,   schein: [16, 0.5],  tempo: 1 },
+  puls:     { dash: [2, 4],                breite: 2.5, schein: [14, 0.3],  tempo: 0.6, atmen: true },
+  blitz:    { dash: [3, 2, 8, 2, 1, 14],   breite: 2.5, schein: [12, 0.35], tempo: 1.6, zucken: true },
+};
+const STIL_NAMEN = Object.keys(STILE);
+
+/* ------------------------------------------------------------------ *
  *  Texte
  * ------------------------------------------------------------------ */
 const SPRACHEN = ["de", "en"];
@@ -165,6 +187,8 @@ const DEFAULT_CONFIG = {
   animation_speed: 1,
   // Faktor fuer alle Schriften der Karte, 1 ist normal.
   font_scale: 1,
+  // Aussehen der laufenden Leitungen, siehe STILE.
+  animation_style: "striche",
   // Kapazitaet des Akkus in kWh, falls keine Entitaet sie liefert.
   battery_capacity_kwh: 0,
   // Leistung, bei der die Striche am schnellsten laufen, in Watt.
@@ -384,6 +408,12 @@ class LutarymEnergyFlowCard extends HTMLElement {
 
   _t(schluessel) {
     return t(schluessel, this._sp());
+  }
+
+  /** Gewaehlter Animationsstil, unbekannte Namen fallen auf Striche zurueck. */
+  _stil() {
+    const name = this._config && this._config.animation_style;
+    return STILE[name] || STILE.striche;
   }
 
   /** Eingestellter Schriftfaktor, begrenzt auf einen lesbaren Bereich. */
@@ -936,7 +966,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
       const p = anteil(w, c.max_power);
       const alt = this._fluss.get(id);
       this._fluss.set(id, {
-        tempo: 14 + 110 * p,
+        tempo: (14 + 110 * p) * this._stil().tempo,
         versatz: alt ? alt.versatz : 0,
         rueck: Boolean(rueck),
         els: fg ? [f, fg] : [f],
@@ -1250,11 +1280,30 @@ class LutarymEnergyFlowCard extends HTMLElement {
 
     // Laufende Striche. Die Strecke waechst fortlaufend, damit eine
     // Tempoaenderung keinen Sprung erzeugt.
+    const stil = this._stil();
+    const periode = stil.dash.reduce((a, b) => a + b, 0) || STRICH_PERIODE;
     this._fluss.forEach((s) => {
-      s.versatz = (s.versatz + (s.rueck ? 1 : -1) * s.tempo * dt) % (STRICH_PERIODE * 1000);
+      s.versatz = (s.versatz + (s.rueck ? 1 : -1) * s.tempo * dt) % (periode * 1000);
       const wert = s.versatz.toFixed(1);
       s.els.forEach((el) => el.setAttribute("stroke-dashoffset", wert));
     });
+
+    // Zusatzeffekte einzelner Stile auf den laufenden Leitungen.
+    if (stil.atmen || stil.zucken) {
+      this._fluss.forEach((s, id) => {
+        const glow = s.els[1];
+        const strich = s.els[0];
+        if (stil.atmen && glow) {
+          const welle = 0.5 - 0.5 * Math.cos(((zeit % 1.6) / 1.6) * Math.PI * 2);
+          glow.style.opacity = (0.08 + stil.schein[1] * 1.6 * welle).toFixed(2);
+        }
+        if (stil.zucken && strich) {
+          // Pseudozufall aus Zeit und Leitung, damit nicht alle gleich flackern.
+          const n = Math.sin(zeit * 37 + id.length * 13.7) * Math.sin(zeit * 11.3 + id.length);
+          strich.style.opacity = n > 0.55 ? "0.35" : "0.95";
+        }
+      });
+    }
 
     // Drehende Symbole
     this._dreh.forEach((s, id) => {
@@ -1278,6 +1327,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
 
   _css() {
     const f = this._fs();
+    const stil = this._stil();
     const px = (n) => `${(n * f).toFixed(1)}px`;
     return `
       /* Die Karte fuellt genau den Platz, den Home Assistant ihr gibt.
@@ -1316,13 +1366,14 @@ class LutarymEnergyFlowCard extends HTMLElement {
       .pipe.is-on { stroke-opacity: 0.35; }
       /* Laufende Striche mit einer weichen Leuchtspur darunter. */
       .flow, .flow-glow {
-        fill: none; stroke-linecap: round; stroke-dasharray: 6 14; opacity: 0;
+        fill: none; stroke-linecap: round; stroke-dasharray: ${stil.dash.join(" ")}; opacity: 0;
         transition: opacity 400ms ease;
       }
-      .flow { stroke-width: 3.5; }
-      .flow-glow { stroke-width: 9; }
+      .flow { stroke-width: ${stil.breite}; }
+      .flow-glow { stroke-width: ${stil.schein[0]}; }
       .flow.is-on { opacity: 0.95; }
-      .flow-glow.is-on { opacity: 0.18; }
+      .flow-glow.is-on { opacity: ${stil.schein[1]}; }
+      .flow:not(.is-on), .flow-glow:not(.is-on) { opacity: 0 !important; }
       .knotenpunkt { fill: #111821; stroke: #2E3848; stroke-width: 2; }
 
       .node[data-entity] { cursor: pointer; }
@@ -1372,6 +1423,12 @@ const EDITOR_TEXTE = {
     animate: "Animation",
     animation_speed: "Animationsgeschwindigkeit (1 = normal)",
     font_scale: "Schriftgröße (1 = normal)",
+    animation_style: "Animationsstil der Leitungen",
+    stil: {
+      striche: "Striche", punkte: "Punkte", perlen: "Perlen", lang: "Lange Striche",
+      komet: "Komet", morse: "Morse", lauflicht: "Lauflicht", neon: "Neon",
+      puls: "Puls", blitz: "Blitz",
+    },
     max_power: "Leistung für höchstes Tempo (W)",
     kw_threshold: "Ab dieser Leistung in kW anzeigen (W)",
     min_flow: "Kleinere Leistung gilt als Stillstand (W)",
@@ -1431,6 +1488,12 @@ const EDITOR_TEXTE = {
     animate: "Animation",
     animation_speed: "Animation speed (1 = normal)",
     font_scale: "Font size (1 = normal)",
+    animation_style: "Line animation style",
+    stil: {
+      striche: "Dashes", punkte: "Dots", perlen: "Pearls", lang: "Long dashes",
+      komet: "Comet", morse: "Morse", lauflicht: "Running light", neon: "Neon",
+      puls: "Pulse", blitz: "Lightning",
+    },
     max_power: "Power for top speed (W)",
     kw_threshold: "Show in kW from this power (W)",
     min_flow: "Lower power counts as idle (W)",
@@ -1567,6 +1630,8 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
         { name: "animate", selector: JA_NEIN },
         { name: "animation_speed", selector: { number: { min: 0.25, max: 3, step: 0.25, mode: "slider" } } },
         { name: "font_scale", selector: { number: { min: 0.7, max: 1.3, step: 0.05, mode: "slider" } } },
+        { name: "animation_style", selector: { select: { mode: "dropdown",
+          options: STIL_NAMEN.map((k) => ({ value: k, label: EDITOR_TEXTE[sp].stil[k] })) } } },
         { name: "max_power", selector: { number: { min: 1000, max: 50000, step: 500, mode: "box" } } },
         { name: "kw_threshold", selector: { number: { min: 0, max: 10000, step: 100, mode: "box" } } },
         { name: "min_flow", selector: { number: { min: 0, max: 500, step: 1, mode: "box" } } },

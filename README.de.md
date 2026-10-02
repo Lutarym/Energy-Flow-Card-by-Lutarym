@@ -91,6 +91,7 @@ Symbole: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, 
 | `animate` | `true` | Animation zeigen |
 | `animation_speed` | `1` | Faktor für die Animationsgeschwindigkeit, 0,25 bis 3 |
 | `font_scale` | `1` | Faktor für alle Schriften, 0,7 bis 1,3 |
+| `animation_style` | `striche` | Animation der Leitungen: `striche`, `punkte`, `perlen`, `lang`, `komet`, `morse`, `lauflicht`, `neon`, `puls`, `blitz` |
 | `battery_capacity_kwh` | `0` | Feste Kapazität des Akkus in kWh, falls keine Entität `battery_capacity` gesetzt ist |
 | `max_power` | `10000` | Leistung in W, bei der die Striche am schnellsten laufen |
 | `kw_threshold` | `1000` | Ab dieser Leistung in W wird in kW angezeigt |
