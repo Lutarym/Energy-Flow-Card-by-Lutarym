@@ -90,9 +90,10 @@ Symbole: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, 
 |---|---|---|
 | `language` | `auto` | `auto`, `de` oder `en` |
 | `demo` | `false` | Beispielwerte zum Ausprobieren |
+| `show_names` | `true` | Namen über und unter den Kreisen anzeigen |
 | `animate` | `true` | Animation zeigen |
 | `animation_speed` | `1` | Faktor für die Animationsgeschwindigkeit, 0,25 bis 3 |
-| `font_scale` | `1` | Faktor für alle Schriften, 0,7 bis 1,3 |
+| `font_scale` | `1` | Faktor für alle Schriften, 0,7 bis 1,15 |
 | `animation_style` | `striche` | Animation der Leitungen: `striche`, `punkte`, `perlen`, `lang`, `komet`, `morse`, `lauflicht`, `neon`, `puls`, `blitz` |
 | `battery_bar` | `true` | Akkusäule rechts, über die ganze Höhe der Karte. Der Fluss bleibt linksbündig, die Säule rechtsbündig |
 | `battery_bar_animation` | `1` | Animation der Akkusäule, 0 bis 12: statisch, Wellen, Pulsieren, Blasen, Glitzer, sanft auffüllend, Schimmern, Blitz, Regen, Feuer, Matrix, Scanline, Herzschlag |

@@ -223,6 +223,8 @@ const DEFAULT_CONFIG = {
   animation_speed: 1,
   // Faktor fuer alle Schriften der Karte, 1 ist normal.
   font_scale: 1,
+  // Namen ueber und unter den Kreisen anzeigen.
+  show_names: true,
   // Aussehen der laufenden Leitungen, siehe STILE.
   animation_style: "striche",
   // Akkusaeule rechts neben dem Fluss.
@@ -613,7 +615,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
 
   /** Eingestellter Schriftfaktor, begrenzt auf einen lesbaren Bereich. */
   _fs() {
-    return clamp(Number(this._config && this._config.font_scale) || 1, 0.7, 1.3);
+    return clamp(Number(this._config && this._config.font_scale) || 1, 0.7, 1.15);
   }
 
   /** Eigener Name gewinnt, sonst der Name in der Kartensprache. */
@@ -1055,18 +1057,20 @@ class LutarymEnergyFlowCard extends HTMLElement {
    * Ein Knoten: Kreis mit Leuchtring, kleinem Symbol und Werten.
    * Alles innen ist relativ zur Kreismitte gezeichnet.
    */
-  _knoten({ id, pos, r, label, labelUnten, entity, icon, inhalt }) {
+  _knoten({ id, pos, r, label: name, labelUnten, entity, icon, inhalt }) {
     const radius = r || G.R;
     const f = this._fs();
+    // Ohne Namen bleibt nur der Kreis, der Rahmen schneidet den Platz weg.
+    const label = this._config.show_names === false ? "" : name;
     const ly = labelUnten ? radius + (radius > 40 ? 20 : 14) * f : -(radius + 12);
     return `
       <g class="node" id="dev-${id}" transform="translate(${pos.x} ${pos.y})" ${entity ? `data-entity="${entity}"` : ""}>
         <circle id="glow-${id}" class="node-glow" r="${radius}" opacity="0" filter="url(#glowBlur)"/>
         <circle class="node-bg" r="${radius}"/>
         <circle id="ring-${id}" class="node-ring" r="${radius}"/>
-        ${label ? `<rect class="label-bg" x="${-(String(label).length * (radius > 40 ? 4.6 : 3.4) * f + 8)}" y="${ly - 12 * f}"
-              width="${String(label).length * (radius > 40 ? 9.2 : 6.8) * f + 16}" height="${16 * f}" rx="${8 * f}"/>` : ""}
-        <text class="node-label${radius > 40 ? "" : " klein"}" id="${id}-label" y="${ly}" text-anchor="middle">${escapeHtml(label)}</text>
+        ${label ? `<rect class="label-bg" x="${-(String(label).length * (radius > 40 ? 5.2 : 3.8) * f + 8)}" y="${ly - 13 * f}"
+              width="${String(label).length * (radius > 40 ? 10.4 : 7.6) * f + 16}" height="${18 * f}" rx="${9 * f}"/>
+        <text class="node-label${radius > 40 ? "" : " klein"}" id="${id}-label" y="${ly}" text-anchor="middle">${escapeHtml(label)}</text>` : ""}
         <g class="icon" id="icon-${id}" transform="translate(0 ${radius > 40 ? -30 : -8})${radius > 40 ? "" : " scale(0.75)"}">${icon}</g>
         ${inhalt}
       </g>`;
@@ -1115,7 +1119,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
       ${ex.map((v, i) => this._knoten({
         id: `ex${i}`, r: G.R_KLEIN, labelUnten: true,
         pos: { x: G.EX_X[i], y: G.EX_Y },
-        label: kuerzen(v.name, 11),
+        label: kuerzen(v.name, 9),
         icon: `<g id="ex${i}-sym">${SYMBOLE[v.symbol] || SYMBOLE.steckdose}</g>`,
         inhalt: `<text class="value-k" id="ex${i}-v" y="${(14 + 2 * this._fs()).toFixed(1)}" text-anchor="middle">--</text>`,
       })).join("")}`;
@@ -1467,10 +1471,10 @@ class LutarymEnergyFlowCard extends HTMLElement {
     const ABSTAND = 5 * f;
     // Hoehe und Abstand der Grundlinie von der Oberkante je Zeile.
     const zeilen = [
-      { el: this._el(`${id}-v`), hoehe: 21 * f, grund: 16 * f },
-      { el: this._el(`${id}-s`), hoehe: 15 * f, grund: 12 * f },
-      { el: this._el(`${id}-s2`), hoehe: 15 * f, grund: 12 * f },
-      { el: this._el(`${id}-s3`), hoehe: 15 * f, grund: 12 * f },
+      { el: this._el(`${id}-v`), hoehe: 23 * f, grund: 18 * f },
+      { el: this._el(`${id}-s`), hoehe: 17 * f, grund: 13 * f },
+      { el: this._el(`${id}-s2`), hoehe: 17 * f, grund: 13 * f },
+      { el: this._el(`${id}-s3`), hoehe: 17 * f, grund: 13 * f },
     ].filter((z) => z.el && z.el.textContent !== "");
     const gesamt = SYMBOL + ABSTAND + zeilen.reduce((a, z) => a + z.hoehe, 0);
     const schluessel = zeilen.map((z) => z.el.id).join("|");
@@ -1790,22 +1794,31 @@ class LutarymEnergyFlowCard extends HTMLElement {
         fill: none; stroke-width: 3.5; stroke-linecap: butt;
         transition: stroke-dasharray 900ms ease, stroke-dashoffset 900ms ease, stroke 900ms ease;
       }
-      .label-bg { fill: #10161F; }
-      .node-label { fill: #7E8CA0; font-size: ${px(12)}; letter-spacing: 0.08em; text-transform: uppercase; }
-      .node-label.klein { font-size: ${px(11)}; letter-spacing: 0.02em; text-transform: none; }
+      .label-bg { fill: #0F151D; }
+      /* Klare Schrift: hell auf dunkel, kraeftig, mit dunkler Kontur, damit
+         sie auch ueber Leuchtschein und Leitungen gut lesbar bleibt. */
+      .node-label, .value, .value-k, .sub {
+        font-family: Roboto, "Segoe UI", system-ui, -apple-system, sans-serif;
+        paint-order: stroke; stroke: #0B1017; stroke-linejoin: round;
+      }
+      .node-label {
+        fill: #D2DAE5; font-size: ${px(13)}; font-weight: 600;
+        letter-spacing: 0.06em; text-transform: uppercase; stroke-width: 3px;
+      }
+      .node-label.klein { font-size: ${px(11.5)}; letter-spacing: 0.01em; text-transform: none; }
       .icon {
         color: #55657F; fill: none; stroke: currentColor; stroke-width: 1.8;
         stroke-linecap: round; stroke-linejoin: round; transition: color 500ms ease;
       }
-      .value, .value-k, .sub {
-        font-family: ui-monospace, "SF Mono", Menlo, monospace;
-        font-variant-numeric: tabular-nums;
+      .value, .value-k, .sub { font-variant-numeric: tabular-nums; }
+      .value {
+        fill: #FFFFFF; font-size: ${px(19)}; font-weight: 700; stroke-width: 4px;
+        transition: fill 500ms ease;
       }
-      .value { fill: #E8EDF4; font-size: ${px(18)}; font-weight: 700; transition: fill 500ms ease; }
-      .value-k { fill: #E8EDF4; font-size: ${px(9.5)}; font-weight: 700; }
-      .sub { fill: #7E8CA0; font-size: ${px(11)}; transition: fill 500ms ease; }
+      .value-k { fill: #FFFFFF; font-size: ${px(10.5)}; font-weight: 700; stroke-width: 3px; }
+      .sub { fill: #C4CEDB; font-size: ${px(13)}; font-weight: 600; stroke-width: 3px; transition: fill 500ms ease; }
 
-      .is-aus { fill: #7E8CA0; font-weight: 600; }
+      .is-aus { fill: #9AA6B6; font-weight: 600; }
     `;
   }
 }
@@ -1820,6 +1833,7 @@ const EDITOR_TEXTE = {
     allgemein: "Allgemein",
     language: "Sprache",
     demo: "Demomodus (Beispielwerte)",
+    show_names: "Namen anzeigen",
     animate: "Animation",
     animation_speed: "Animationsgeschwindigkeit (1 = normal)",
     font_scale: "Schriftgröße (1 = normal)",
@@ -1892,6 +1906,7 @@ const EDITOR_TEXTE = {
     allgemein: "General",
     language: "Language",
     demo: "Demo mode (sample values)",
+    show_names: "Show names",
     animate: "Animation",
     animation_speed: "Animation speed (1 = normal)",
     font_scale: "Font size (1 = normal)",
@@ -2042,9 +2057,10 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
           { value: "de", label: "Deutsch" },
           { value: "en", label: "English" },
         ] } } },
+        { name: "show_names", selector: JA_NEIN },
         { name: "animate", selector: JA_NEIN },
         { name: "animation_speed", selector: { number: { min: 0.25, max: 3, step: 0.25, mode: "slider" } } },
-        { name: "font_scale", selector: { number: { min: 0.7, max: 1.3, step: 0.05, mode: "slider" } } },
+        { name: "font_scale", selector: { number: { min: 0.7, max: 1.15, step: 0.05, mode: "slider" } } },
         { name: "animation_style", selector: { select: { mode: "dropdown",
           options: STIL_NAMEN.map((k) => ({ value: k, label: EDITOR_TEXTE[sp].stil[k] })) } } },
         { name: "max_power", selector: { number: { min: 1000, max: 50000, step: 500, mode: "box" } } },

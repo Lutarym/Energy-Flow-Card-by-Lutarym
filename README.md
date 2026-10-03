@@ -90,9 +90,10 @@ Symbols: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, 
 |---|---|---|
 | `language` | `auto` | `auto`, `de` or `en` |
 | `demo` | `false` | Sample values for trying out |
+| `show_names` | `true` | Show the names above and below the circles |
 | `animate` | `true` | Show the animation |
 | `animation_speed` | `1` | Speed factor of the animation, 0.25 to 3 |
-| `font_scale` | `1` | Size factor for all text, 0.7 to 1.3 |
+| `font_scale` | `1` | Size factor for all text, 0.7 to 1.15 |
 | `animation_style` | `striche` | Line animation: `striche` (dashes), `punkte` (dots), `perlen` (pearls), `lang` (long dashes), `komet` (comet), `morse`, `lauflicht` (running light), `neon`, `puls` (pulse), `blitz` (lightning) |
 | `battery_bar` | `true` | Battery bar on the right, full height of the card. The flow stays left aligned, the bar stays right aligned |
 | `battery_bar_animation` | `1` | Animation of the battery bar, 0 to 12: static, waves, pulse, bubbles, glitter, smooth fill, shimmer, lightning, rain, fire, matrix, scanline, heartbeat |
