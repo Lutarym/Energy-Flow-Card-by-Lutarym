@@ -10,7 +10,8 @@ Animated Lovelace card for Home Assistant that shows the energy flow between sol
 
 - Built like a real system: solar and battery on the inverter, inverter feeds the home, grid connected to the home
 - Heat pump, wallbox and up to four further consumers on their own distribution line
-- Running lines in the colour of the source, speed follows the power
+- Three colours, one per source: solar yellow, grid blue, battery green. Every line and ring shows where its power comes from, for example blue all the way from the grid to the battery when a dynamic tariff charges the battery. Power from two sources shows both colours alternating
+- Speed of the running lines follows the power
 - Minimal design: round nodes with small symbols, glowing ring when active
 - Sun rays and heat pump fan turn with the power, wallbox symbol pulses while charging
 - Battery ring shows the state of charge, home ring shows where the power comes from
@@ -93,7 +94,7 @@ Symbols: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, 
 | `animation_speed` | `1` | Speed factor of the animation, 0.25 to 3 |
 | `font_scale` | `1` | Size factor for all text, 0.7 to 1.3 |
 | `animation_style` | `striche` | Line animation: `striche` (dashes), `punkte` (dots), `perlen` (pearls), `lang` (long dashes), `komet` (comet), `morse`, `lauflicht` (running light), `neon`, `puls` (pulse), `blitz` (lightning) |
-| `battery_bar` | `true` | Battery bar on the right, full height of the card |
+| `battery_bar` | `true` | Battery bar on the right, full height of the card. The flow stays left aligned, the bar stays right aligned |
 | `battery_bar_animation` | `1` | Animation of the battery bar, 0 to 12: static, waves, pulse, bubbles, glitter, smooth fill, shimmer, lightning, rain, fire, matrix, scanline, heartbeat |
 | `battery_bar_percent` | `true` | Show the percentage in the battery bar |
 | `battery_bar_width` | `22` | Width of the battery bar in % of its height, 8 to 80 |

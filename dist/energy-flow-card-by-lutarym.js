@@ -24,20 +24,32 @@ const EDITOR_TAG = "energy-flow-card-by-lutarym-editor";
 
 /* ------------------------------------------------------------------ *
  *  Farben
- *  Jede Quelle hat eine feste Farbe. Die laufenden Striche tragen die
- *  Farbe der Quelle, aus der die Energie gerade kommt.
+ *  Es gibt genau drei Farben, eine je Quelle: PV gelb, Netz blau,
+ *  Akku gruen. Jede Leitung und jeder Ring traegt die Farbe der Quelle,
+ *  aus der der Strom gerade stammt, egal wohin er fliesst. Laedt etwa
+ *  das Netz den Akku, ist der ganze Weg vom Netz bis zum Akku blau.
+ *  Kommt der Strom aus zwei Quellen, wechseln sich beide Farben ab.
  * ------------------------------------------------------------------ */
 const FARBE = {
   pv: "#FFC44D",
-  wr: "#F472B6",
-  netzBezug: "#4D9BFF",
-  netzEinspeisung: "#B48CFF",
+  netz: "#4D9BFF",
   akku: "#5BE08F",
-  haus: "#E8EDF4",
-  wp: "#E0762E",
-  wallbox: "#38D6E8",
-  verbraucher: "#C3D0E0",
 };
+
+// Zweite Farbe nur zeigen, wenn diese Quelle mindestens so viel beitraegt.
+const MISCH_SCHWELLE = 0.2;
+
+/**
+ * Ermittelt aus Anteilen [[farbe, watt], ...] die Hauptfarbe und, falls
+ * eine zweite Quelle nennenswert beitraegt, auch deren Farbe.
+ */
+function mischung(anteile) {
+  const liste = anteile.filter(([, w]) => w > 0).sort((a, b) => b[1] - a[1]);
+  const summe = liste.reduce((a, [, w]) => a + w, 0);
+  if (!liste.length) return { haupt: null, neben: null };
+  const neben = liste[1] && liste[1][1] / summe >= MISCH_SCHWELLE ? liste[1][0] : null;
+  return { haupt: liste[0][0], neben };
+}
 const NEUTRAL = "#46536A";
 
 /* ------------------------------------------------------------------ *
@@ -240,30 +252,6 @@ function anteil(w, max) {
   if (!w || w <= 0) return 0;
   const oben = Math.log10(1 + (max || 10000) / 50);
   return clamp(Math.log10(1 + w / 50) / oben, 0, 1);
-}
-
-/** Farbe des Akkustands: rot leer, gelb halb, gruen voll. */
-const SOC_STOPS = [
-  { p: 0.0, c: [255, 95, 82] },
-  { p: 0.3, c: [255, 196, 77] },
-  { p: 0.6, c: [91, 224, 143] },
-  { p: 1.0, c: [64, 200, 120] },
-];
-function socFarbe(soc) {
-  if (soc === null || soc === undefined || Number.isNaN(soc)) return NEUTRAL;
-  const p = clamp(soc / 100, 0, 1);
-  let a = SOC_STOPS[0];
-  let b = SOC_STOPS[SOC_STOPS.length - 1];
-  for (let i = 0; i < SOC_STOPS.length - 1; i++) {
-    if (p >= SOC_STOPS[i].p && p <= SOC_STOPS[i + 1].p) {
-      a = SOC_STOPS[i];
-      b = SOC_STOPS[i + 1];
-      break;
-    }
-  }
-  const lokal = (p - a.p) / (b.p - a.p || 1);
-  const rgb = a.c.map((ch, i) => Math.round(ch + (b.c[i] - ch) * lokal));
-  return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
 }
 
 /* ------------------------------------------------------------------ *
@@ -564,9 +552,8 @@ class LutarymEnergyFlowCard extends HTMLElement {
    * aus dem Seitenverhaeltnis der Zeichnung bei einer ueblichen Spalte.
    */
   getCardSize() {
-    const svg = this.shadowRoot && this.shadowRoot.querySelector("svg");
-    const vb = svg && svg.viewBox && svg.viewBox.baseVal;
-    const verhaeltnis = vb && vb.width ? vb.height / vb.width : G.H / G.W;
+    const b = this._basis && this._basis.vb;
+    const verhaeltnis = b && b[2] ? b[3] / b[2] : G.H / G.W;
     return Math.max(4, Math.ceil((480 * verhaeltnis + 20) / 50));
   }
 
@@ -587,6 +574,11 @@ class LutarymEnergyFlowCard extends HTMLElement {
 
   _t(schluessel) {
     return t(schluessel, this._sp());
+  }
+
+  /** Laenge eines Strichmusters des gewaehlten Stils. */
+  _periode() {
+    return this._stil().dash.reduce((a, b) => a + b, 0) || STRICH_PERIODE;
   }
 
   /** Gewaehlter Animationsstil, unbekannte Namen fallen auf Striche zurueck. */
@@ -971,6 +963,8 @@ class LutarymEnergyFlowCard extends HTMLElement {
       this._beobachter = new ResizeObserver(() => this._saeuleLage());
       const svg = this.shadowRoot.querySelector("svg");
       if (svg) this._beobachter.observe(svg);
+      const szene = this.shadowRoot.querySelector(".lef-scene");
+      if (szene) this._beobachter.observe(szene);
     }
     this._klicks();
     this._startAnimation();
@@ -1026,6 +1020,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
         <path class="pipe" id="pipe-${id}" d="${pfad}"/>
         <path class="flow-glow" id="fg-${id}" d="${pfad}"/>
         <path class="flow" id="f-${id}" d="${pfad}"/>
+        <path class="flow" id="f2-${id}" d="${pfad}"/>
       </g>`;
   }
 
@@ -1123,7 +1118,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
       ${this._knoten({ id: "haus", pos: G.HAUS, label: this._name("home", "haus"),
         entity: this._config.entities.home ? "home" : "",
         icon: ICON.haus,
-        inhalt: `${this._bogen("seg-pv", FARBE.pv)}${this._bogen("seg-akku", FARBE.akku)}${this._bogen("seg-netz", FARBE.netzBezug)}${this._werte("haus")}` })}
+        inhalt: `${this._bogen("seg-pv", FARBE.pv)}${this._bogen("seg-akku", FARBE.akku)}${this._bogen("seg-netz", FARBE.netz)}${this._werte("haus")}` })}
       </g>
       ${this._zeigtSaeule() ? `
       <g id="akku-saeule" class="saeule" data-entity="${this._config.entities.battery_soc ? "battery_soc" : "battery"}">
@@ -1153,15 +1148,26 @@ class LutarymEnergyFlowCard extends HTMLElement {
   }
 
   /** Schaltet eine Leitung. Positive Leistung laeuft in Pfadrichtung. */
-  _setLeitung(id, w, farbe, rueck) {
+  _setLeitung(id, w, farbeOderMix, rueck) {
     const c = this._config;
+    const mix = typeof farbeOderMix === "string" || !farbeOderMix
+      ? { haupt: farbeOderMix, neben: null }
+      : farbeOderMix;
+    const farbe = mix.haupt || NEUTRAL;
     const aktiv = w !== null && w !== undefined && w > (Number(c.min_flow) || 0);
     const f = this._el(`f-${id}`);
+    const f2 = this._el(`f2-${id}`);
     const fg = this._el(`fg-${id}`);
     const rohr = this._el(`pipe-${id}`);
     if (!f) return;
     f.classList.toggle("is-on", aktiv);
     if (fg) fg.classList.toggle("is-on", aktiv);
+    // Zweite Quelle: eigene Strichspur, um eine halbe Periode versetzt.
+    const gemischt = aktiv && Boolean(mix.neben);
+    if (f2) {
+      f2.classList.toggle("is-on", gemischt);
+      if (gemischt) f2.style.stroke = mix.neben;
+    }
     if (rohr) {
       rohr.style.stroke = aktiv ? farbe : "";
       rohr.classList.toggle("is-on", aktiv);
@@ -1176,10 +1182,12 @@ class LutarymEnergyFlowCard extends HTMLElement {
         versatz: alt ? alt.versatz : 0,
         rueck: Boolean(rueck),
         els: fg ? [f, fg] : [f],
+        zweit: gemischt ? f2 : null,
       });
       if (!c.animate) {
         f.setAttribute("stroke-dashoffset", "0");
         if (fg) fg.setAttribute("stroke-dashoffset", "0");
+        if (gemischt) f2.setAttribute("stroke-dashoffset", (this._periode() / 2).toFixed(1));
       }
     } else {
       this._fluss.delete(id);
@@ -1187,7 +1195,9 @@ class LutarymEnergyFlowCard extends HTMLElement {
   }
 
   /** Ring und Leuchten eines Knotens ein- oder ausschalten. */
-  _setAktiv(id, aktiv, farbe) {
+  _setAktiv(id, aktiv, farbeOderMix) {
+    const farbe = (farbeOderMix && farbeOderMix.haupt !== undefined
+      ? farbeOderMix.haupt : farbeOderMix) || NEUTRAL;
     const ring = this._el(`ring-${id}`);
     if (ring) {
       ring.setAttribute("stroke", farbe);
@@ -1269,10 +1279,11 @@ class LutarymEnergyFlowCard extends HTMLElement {
     this._zeige("dev-netz", m.hatNetz);
     const einspeisen = an(m.einspeisung) && !an(m.bezug);
     const netzW = einspeisen ? m.einspeisung : m.bezug;
-    const netzFarbe = einspeisen ? FARBE.netzEinspeisung : FARBE.netzBezug;
+    // Bezug ist blau. Bei Einspeisung traegt das Netz die Farbe dessen,
+    // was eingespeist wird, also meist gelb fuer PV.
+    const einspeiseMix = mischung([[FARBE.pv, f.pvNetz], [FARBE.akku, f.akkuNetz]]);
+    const netzFarbe = einspeisen ? (einspeiseMix.haupt || FARBE.pv) : FARBE.netz;
     this._setText("netz-v", this._wText(netzW));
-    const netzV = this._el("netz-v");
-    if (netzV) netzV.style.fill = an(netzW) ? netzFarbe : "";
     // Ob bezogen oder eingespeist wird, zeigt die Laufrichtung der Leitung.
     this._setText("netz-s2", zusatz("grid_secondary"));
     this._setAktiv("netz", an(netzW), netzFarbe);
@@ -1291,11 +1302,14 @@ class LutarymEnergyFlowCard extends HTMLElement {
     this._setText("akku-s", kap > 0 && m.soc !== null
       ? `${this._zahlText((clamp(m.soc, 0, 100) / 100) * kap, 1)} kWh`
       : "");
-    const akkuS = this._el("akku-s");
-    if (akkuS) akkuS.style.fill = an(akkuW) ? FARBE.akku : "";
+
     this._setText("akku-s2", zusatz("battery_secondary"));
-    this._setBogen("akku-soc", 0, m.soc === null ? 0 : m.soc / 100, socFarbe(m.soc));
-    this._setAktiv("akku", an(m.laden) || an(m.entladen), FARBE.akku);
+    // Der Ladestandsbogen ist immer akkugruen, wie alles, was aus dem Akku kommt.
+    this._setBogen("akku-soc", 0, m.soc === null ? 0 : m.soc / 100, FARBE.akku);
+    // Beim Laden leuchtet der Akku in der Farbe der ladenden Quelle.
+    const ladeMix = mischung([[FARBE.pv, f.pvAkku], [FARBE.netz, f.netzAkku]]);
+    this._setAktiv("akku", an(m.laden) || an(m.entladen),
+      an(m.laden) ? ladeMix : FARBE.akku);
     const akkuRing = this._el("ring-akku");
     if (akkuRing) akkuRing.classList.remove("is-on");
     this._setPuls("akku-blitz", an(m.laden), 1.4);
@@ -1324,13 +1338,21 @@ class LutarymEnergyFlowCard extends HTMLElement {
     }
     // Das Haus bekommt keinen eigenen Ring, die Herkunftsboegen sind sein Ring.
     const hausIcon = this._el("icon-haus");
-    if (hausIcon) hausIcon.style.color = an(m.haus) ? FARBE.haus : "";
+    // Was das Haus gerade bezieht, in den Farben der Quellen.
+    const hausMix = mischung([[FARBE.pv, f.pvHaus], [FARBE.akku, f.akkuHaus], [FARBE.netz, f.netzHaus]]);
+    if (hausIcon) hausIcon.style.color = an(m.haus) ? hausMix.haupt || "" : "";
 
     /* ---- Wechselrichter ---- */
     this._zeige("dev-wr", m.hatWr);
     this._setText("wr-v", this._wText(m.wr === null ? null : Math.abs(m.wr)));
     this._setText("wr-s", zusatz("inverter_secondary"));
-    this._setAktiv("wr", an(Math.abs(m.wr || 0)), FARBE.wr);
+    // Der Wechselrichter traegt die Farbe dessen, was gerade durch ihn fliesst.
+    const wrMix = (m.wr || 0) >= 0
+      ? mischung([[FARBE.pv, f.pvHaus + f.pvNetz], [FARBE.akku, f.akkuHaus + f.akkuNetz]])
+      : mischung([[FARBE.netz, f.netzAkku]]);
+    // PV, die direkt in den Akku geht, laeuft auch durch den Wechselrichter.
+    if (!wrMix.haupt && an(m.pv)) wrMix.haupt = FARBE.pv;
+    this._setAktiv("wr", an(Math.abs(m.wr || 0)) || an(m.pv), wrMix);
 
     /* ---- Leitungen ---- */
     this._zeige("ltg-pv_wr", m.hatPv);
@@ -1339,20 +1361,23 @@ class LutarymEnergyFlowCard extends HTMLElement {
     this._zeige("ltg-netz_haus", m.hatNetz);
     // PV laeuft immer in den Wechselrichter.
     this._setLeitung("pv_wr", m.pv, FARBE.pv);
-    // Akku: Entladen laeuft zum Wechselrichter, Laden zurueck. Beim Laden
-    // traegt die Leitung die Farbe der Quelle, die gerade laedt.
+    // Akku: Entladen laeuft zum Wechselrichter und ist gruen. Laden laeuft
+    // zum Akku und traegt die Farbe der ladenden Quelle, also gelb fuer
+    // PV und blau fuer Netzstrom, etwa beim Laden im guenstigen Tarif.
     if (an(m.entladen)) this._setLeitung("akku_wr", m.entladen, FARBE.akku, false);
-    else this._setLeitung("akku_wr", m.laden, f.netzAkku > f.pvAkku ? FARBE.netzBezug : FARBE.pv, true);
-    // Wechselrichter ins Haus, Farbe nach dem groesseren Anteil. Negativ:
-    // das Netz laedt ueber das Haus den Akku, die Leitung laeuft zurueck.
+    else this._setLeitung("akku_wr", m.laden, ladeMix, true);
+    // Wechselrichter ins Haus: PV und Akkustrom. Negativ heisst, das Netz
+    // laedt ueber das Haus den Akku, die Leitung laeuft blau zurueck.
     if ((m.wr || 0) >= 0) {
-      this._setLeitung("wr_haus", m.wr, f.akkuHaus > f.pvHaus ? FARBE.akku : FARBE.pv, false);
+      this._setLeitung("wr_haus", m.wr,
+        mischung([[FARBE.pv, f.pvHaus + f.pvNetz], [FARBE.akku, f.akkuHaus + f.akkuNetz]]), false);
     } else {
-      this._setLeitung("wr_haus", -m.wr, FARBE.netzBezug, true);
+      this._setLeitung("wr_haus", -m.wr, FARBE.netz, true);
     }
-    // Netz: Bezug laeuft zum Haus, Einspeisung zurueck.
-    if (an(m.bezug)) this._setLeitung("netz_haus", m.bezug, FARBE.netzBezug, false);
-    else this._setLeitung("netz_haus", m.einspeisung, FARBE.netzEinspeisung, true);
+    // Netz: Bezug ist blau und laeuft zum Haus. Einspeisung laeuft zum Netz
+    // und traegt die Farbe dessen, was eingespeist wird.
+    if (an(m.bezug)) this._setLeitung("netz_haus", m.bezug, FARBE.netz, false);
+    else this._setLeitung("netz_haus", m.einspeisung, einspeiseMix.haupt ? einspeiseMix : FARBE.pv, true);
 
     /* ---- Rechte Spalte ---- */
     if (this._gebautRechts) {
@@ -1367,21 +1392,21 @@ class LutarymEnergyFlowCard extends HTMLElement {
       this._setText("wp-v", this._verbraucherText(this._id("heatpump"), m.wp, an(m.wp)));
       this._dimm("wp-v", !an(m.wp));
       this._setText("wp-s", zusatz("heatpump_secondary"));
-      this._setAktiv("wp", an(m.wp), FARBE.wp);
+      this._setAktiv("wp", an(m.wp), hausMix);
       this._setDreh("wp-rotor", an(m.wp) ? 90 + 400 * anteil(m.wp, 4000) : 0);
-      this._setLeitung("bus_wp", zeigeWp ? m.wp : null, FARBE.wp);
+      this._setLeitung("bus_wp", zeigeWp ? m.wp : null, hausMix);
 
       // Wallbox
       this._setText("wb-v", this._verbraucherText(this._id("wallbox"), m.wb, an(m.wb)));
       this._dimm("wb-v", !an(m.wb));
       this._setText("wb-s", zusatz("wallbox_secondary"));
-      this._setAktiv("wb", an(m.wb), FARBE.wallbox);
+      this._setAktiv("wb", an(m.wb), hausMix);
       this._setPuls("wb-blitz", an(m.wb), 1.6);
       if (!an(m.wb)) {
         const blitz = this._el("wb-blitz");
         if (blitz) blitz.setAttribute("opacity", "0.5");
       }
-      this._setLeitung("bus_wb", zeigeWb ? m.wb : null, FARBE.wallbox);
+      this._setLeitung("bus_wb", zeigeWb ? m.wb : null, hausMix);
 
       // Weitere Verbraucher
       let exSumme = 0;
@@ -1392,14 +1417,14 @@ class LutarymEnergyFlowCard extends HTMLElement {
           exSumme += v.w;
           if (i > 0) rechtsEx += v.w;
         }
-        this._setLeitung(`exa${i}`, v.w, FARBE.verbraucher);
+        this._setLeitung(`exa${i}`, v.w, hausMix);
         this._setText(`ex${i}-v`, this._verbraucherText(v.id, v.w, aktiv));
         this._dimm(`ex${i}-v`, !aktiv);
-        this._setAktiv(`ex${i}`, aktiv, FARBE.verbraucher);
+        this._setAktiv(`ex${i}`, aktiv, hausMix);
       });
-      this._setLeitung("bus_ex", exSumme, FARBE.verbraucher);
-      this._setLeitung("ex_l", m.verbraucher[0] ? m.verbraucher[0].w : null, FARBE.verbraucher);
-      this._setLeitung("ex_r", rechtsEx, FARBE.verbraucher);
+      this._setLeitung("bus_ex", exSumme, hausMix);
+      this._setLeitung("ex_l", m.verbraucher[0] ? m.verbraucher[0].w : null, hausMix);
+      this._setLeitung("ex_r", rechtsEx, hausMix);
 
       // Waermepumpe, Wallbox und Verbraucher haben eigene Leitungen aus dem Haus.
     }
@@ -1485,10 +1510,19 @@ class LutarymEnergyFlowCard extends HTMLElement {
     }
     // Etwas Luft fuer den Leuchtschein um aktive Kreise.
     const luft = 8;
-    svg.setAttribute("viewBox", [
+    const basis = [
       Math.floor(box.x - luft), Math.floor(box.y - luft),
       Math.ceil(box.width + 2 * luft), Math.ceil(box.height + 2 * luft),
-    ].join(" "));
+    ];
+    svg.setAttribute("viewBox", basis.join(" "));
+    // Grundlage fuer das Verschieben der Saeule an den rechten Rand.
+    this._basis = {
+      vb: basis,
+      saeule: ["saeule-rahmen", "saeule-pol", "saeule-innen"].map((id) => {
+        const el = this._el(id);
+        return el ? [id, parseFloat(el.getAttribute("x")) || 0] : null;
+      }).filter(Boolean),
+    };
     this._rahmenFuer = sichtbar;
     this._saeuleLage();
   }
@@ -1512,6 +1546,27 @@ class LutarymEnergyFlowCard extends HTMLElement {
     if (!innen || !saeule || saeule.getAttribute("display") === "none") {
       ueber.hidden = true;
       return;
+    }
+    // Ist die Karte breiter als die Zeichnung, wandert die Saeule an den
+    // rechten Rand. Der Fluss bleibt links, die Luecke liegt dazwischen.
+    const svg = this.shadowRoot.querySelector("svg");
+    const basis = this._basis;
+    if (svg && basis) {
+      const platz = szene.getBoundingClientRect();
+      const [vx, vy, vw, vh] = basis.vb;
+      let extra = 0;
+      if (platz.width > 0 && platz.height > 0) {
+        const soll = (vh * platz.width) / platz.height;
+        if (soll > vw * 1.005) extra = soll - vw;
+      }
+      const vb = [vx, vy, (vw + extra).toFixed(1), vh].join(" ");
+      if (svg.getAttribute("viewBox") !== vb) {
+        svg.setAttribute("viewBox", vb);
+        basis.saeule.forEach(([id, x]) => {
+          const el = this._el(id);
+          if (el) el.setAttribute("x", (x + extra).toFixed(1));
+        });
+      }
     }
     const a = innen.getBoundingClientRect();
     const b = szene.getBoundingClientRect();
@@ -1598,6 +1653,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
       s.versatz = (s.versatz + (s.rueck ? 1 : -1) * s.tempo * dt) % (periode * 1000);
       const wert = s.versatz.toFixed(1);
       s.els.forEach((el) => el.setAttribute("stroke-dashoffset", wert));
+      if (s.zweit) s.zweit.setAttribute("stroke-dashoffset", (s.versatz + periode / 2).toFixed(1));
     });
 
     // Zusatzeffekte einzelner Stile auf den laufenden Leitungen.
@@ -1727,9 +1783,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
       .value { fill: #E8EDF4; font-size: ${px(18)}; font-weight: 700; transition: fill 500ms ease; }
       .value-k { fill: #E8EDF4; font-size: ${px(9.5)}; font-weight: 700; }
       .sub { fill: #7E8CA0; font-size: ${px(11)}; transition: fill 500ms ease; }
-      .pv-c { fill: ${FARBE.pv}; }
-      .wp-c { fill: ${FARBE.wp}; }
-      .wb-c { fill: ${FARBE.wallbox}; }
+
       .is-aus { fill: #7E8CA0; font-weight: 600; }
     `;
   }

@@ -10,7 +10,8 @@ Animierte Lovelace Karte für Home Assistant. Sie zeigt den Energiefluss zwische
 
 - Aufbau wie eine echte Anlage: PV und Akku am Wechselrichter, der Wechselrichter speist ins Haus, das Netz hängt am Haus
 - Wärmepumpe, Wallbox und bis zu vier weitere Verbraucher an einer eigenen Verteilung
-- Laufende Striche in der Farbe der Quelle, das Tempo folgt der Leistung
+- Drei Farben, eine je Quelle: PV gelb, Netz blau, Akku grün. Jede Leitung und jeder Ring zeigt, woher der Strom stammt, etwa blau vom Netz bis in den Akku, wenn ein dynamischer Tarif den Akku lädt. Strom aus zwei Quellen zeigt beide Farben im Wechsel
+- Das Tempo der Striche folgt der Leistung
 - Minimalistisch: runde Knoten mit kleinen Symbolen, leuchtender Ring bei Betrieb
 - Sonnenstrahlen und Lüfter der Wärmepumpe drehen mit der Leistung, das Wallbox Symbol pulsiert beim Laden
 - Der Ring des Akkus zeigt den Ladestand, der Ring des Hauses die Herkunft des Stroms
@@ -93,7 +94,7 @@ Symbole: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, 
 | `animation_speed` | `1` | Faktor für die Animationsgeschwindigkeit, 0,25 bis 3 |
 | `font_scale` | `1` | Faktor für alle Schriften, 0,7 bis 1,3 |
 | `animation_style` | `striche` | Animation der Leitungen: `striche`, `punkte`, `perlen`, `lang`, `komet`, `morse`, `lauflicht`, `neon`, `puls`, `blitz` |
-| `battery_bar` | `true` | Akkusäule rechts, über die ganze Höhe der Karte |
+| `battery_bar` | `true` | Akkusäule rechts, über die ganze Höhe der Karte. Der Fluss bleibt linksbündig, die Säule rechtsbündig |
 | `battery_bar_animation` | `1` | Animation der Akkusäule, 0 bis 12: statisch, Wellen, Pulsieren, Blasen, Glitzer, sanft auffüllend, Schimmern, Blitz, Regen, Feuer, Matrix, Scanline, Herzschlag |
 | `battery_bar_percent` | `true` | Prozent in der Akkusäule anzeigen |
 | `battery_bar_width` | `22` | Breite der Akkusäule in % ihrer Höhe, 8 bis 80 |
