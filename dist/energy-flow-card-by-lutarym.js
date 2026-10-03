@@ -193,6 +193,8 @@ const DEFAULT_CONFIG = {
   battery_bar: true,
   battery_bar_animation: 1,
   battery_bar_percent: true,
+  // Breite der Akkusaeule in Prozent ihrer Hoehe.
+  battery_bar_width: 22,
   // Kapazitaet des Akkus in kWh, falls keine Entitaet sie liefert.
   battery_capacity_kwh: 0,
   // Leistung, bei der die Striche am schnellsten laufen, in Watt.
@@ -1097,7 +1099,8 @@ class LutarymEnergyFlowCard extends HTMLElement {
       })).join("")}`;
 
     return `
-    <svg viewBox="0 0 ${breite} ${hoehe}" class="lef-svg" role="img" aria-label="Energy flow">
+    <svg viewBox="0 0 ${breite} ${hoehe}" class="lef-svg" role="img" aria-label="Energy flow"
+         preserveAspectRatio="xMinYMid meet">
       ${this._defs()}
       <g id="fluss-inhalt">
       ${this._leitung("pv_wr")}
@@ -1464,7 +1467,8 @@ class LutarymEnergyFlowCard extends HTMLElement {
       const POL = 10;
       const STRICH = 3;
       const hoehe = box.height - POL;
-      const breite = Math.round(hoehe * 0.22);
+      const anteil = clamp(Number(this._config.battery_bar_width) || 22, 8, 80) / 100;
+      const breite = Math.round(hoehe * anteil);
       const x = box.x + box.width + 26;
       const y = box.y + POL;
       const setze = (id, a) => {
@@ -1531,7 +1535,11 @@ class LutarymEnergyFlowCard extends HTMLElement {
     }
     this._saeuleMass = { w: a.width, h: a.height, dpr };
     const pct = this._el("bat-pct");
-    if (pct) pct.style.fontSize = `${Math.max(10, a.width * 0.3 * this._fs()).toFixed(1)}px`;
+    // Schrift waechst mit der Breite, aber nicht ueber ein Fuenfzehntel der Hoehe.
+    if (pct) {
+      const groesse = Math.min(a.width * 0.3, a.height / 15) * this._fs();
+      pct.style.fontSize = `${Math.max(10, groesse).toFixed(1)}px`;
+    }
   }
 
   /** Zeichnet die Fuellung der Akkusaeule fuer das aktuelle Bild. */
@@ -1647,7 +1655,8 @@ class LutarymEnergyFlowCard extends HTMLElement {
       }
       .lef-scene {
         flex: 1 1 auto; min-height: 0; position: relative;
-        display: flex; align-items: center; justify-content: center;
+        /* Die Zeichnung bleibt immer links, egal wie breit die Karte ist. */
+        display: flex; align-items: center; justify-content: flex-start;
       }
       .saeule { cursor: pointer; }
       .saeule-rahmen { fill: #111821; stroke: #C3D0E0; stroke-width: 3; }
@@ -1771,6 +1780,7 @@ const EDITOR_TEXTE = {
     battery_bar: "Akkusäule rechts anzeigen",
     battery_bar_animation: "Animation der Akkusäule",
     battery_bar_percent: "Prozent in der Akkusäule anzeigen",
+    battery_bar_width: "Breite der Akkusäule (% ihrer Höhe)",
     saeule: ["Statisch", "Wellen", "Pulsieren", "Blasen", "Glitzer", "Sanft auffüllend",
       "Schimmern", "Blitz", "Regen", "Feuer", "Matrix", "Scanline", "Herzschlag"],
     battery_secondary: "Zusatzzeile (z.B. Temperatur)",
@@ -1841,6 +1851,7 @@ const EDITOR_TEXTE = {
     battery_bar: "Show battery bar on the right",
     battery_bar_animation: "Battery bar animation",
     battery_bar_percent: "Show percentage in battery bar",
+    battery_bar_width: "Battery bar width (% of its height)",
     saeule: ["Static", "Waves", "Pulse", "Bubbles", "Glitter", "Smooth fill",
       "Shimmer", "Lightning", "Rain", "Fire", "Matrix", "Scanline", "Heartbeat"],
     battery_secondary: "Extra line (e.g. temperature)",
@@ -1992,6 +2003,7 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
         { name: "battery_bar_animation", selector: { select: { mode: "dropdown",
           options: EDITOR_TEXTE[sp].saeule.map((label, i) => ({ value: String(i), label })) } } },
         { name: "battery_bar_percent", selector: JA_NEIN },
+        { name: "battery_bar_width", selector: { number: { min: 8, max: 80, step: 1, mode: "slider", unit_of_measurement: "%" } } },
         { name: "battery_secondary", ort: "e", selector: BELIEBIG },
         { name: "name_battery", selector: TEXT },
       ] },

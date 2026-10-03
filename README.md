@@ -96,6 +96,7 @@ Symbols: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, 
 | `battery_bar` | `true` | Battery bar on the right, full height of the card |
 | `battery_bar_animation` | `1` | Animation of the battery bar, 0 to 12: static, waves, pulse, bubbles, glitter, smooth fill, shimmer, lightning, rain, fire, matrix, scanline, heartbeat |
 | `battery_bar_percent` | `true` | Show the percentage in the battery bar |
+| `battery_bar_width` | `22` | Width of the battery bar in % of its height, 8 to 80 |
 | `battery_capacity_kwh` | `0` | Fixed battery capacity in kWh, used when no `battery_capacity` entity is set |
 | `max_power` | `10000` | Power in W at which the lines run fastest |
 | `kw_threshold` | `1000` | From this power in W the value is shown in kW |

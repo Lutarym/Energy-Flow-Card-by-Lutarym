@@ -96,6 +96,7 @@ Symbole: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, 
 | `battery_bar` | `true` | Akkusäule rechts, über die ganze Höhe der Karte |
 | `battery_bar_animation` | `1` | Animation der Akkusäule, 0 bis 12: statisch, Wellen, Pulsieren, Blasen, Glitzer, sanft auffüllend, Schimmern, Blitz, Regen, Feuer, Matrix, Scanline, Herzschlag |
 | `battery_bar_percent` | `true` | Prozent in der Akkusäule anzeigen |
+| `battery_bar_width` | `22` | Breite der Akkusäule in % ihrer Höhe, 8 bis 80 |
 | `battery_capacity_kwh` | `0` | Feste Kapazität des Akkus in kWh, falls keine Entität `battery_capacity` gesetzt ist |
 | `max_power` | `10000` | Leistung in W, bei der die Striche am schnellsten laufen |
 | `kw_threshold` | `1000` | Ab dieser Leistung in W wird in kW angezeigt |
