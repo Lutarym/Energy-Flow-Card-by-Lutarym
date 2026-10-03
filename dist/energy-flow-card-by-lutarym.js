@@ -24,17 +24,41 @@ const EDITOR_TAG = "energy-flow-card-by-lutarym-editor";
 
 /* ------------------------------------------------------------------ *
  *  Farben
- *  Es gibt genau drei Farben, eine je Quelle: PV gelb, Netz blau,
- *  Akku gruen. Jede Leitung und jeder Ring traegt die Farbe der Quelle,
- *  aus der der Strom gerade stammt, egal wohin er fliesst. Laedt etwa
- *  das Netz den Akku, ist der ganze Weg vom Netz bis zum Akku blau.
- *  Kommt der Strom aus zwei Quellen, wechseln sich beide Farben ab.
+ *  Jedes Geraet hat seine eigene, feste Farbe fuer Ring und Symbol.
+ *  Die Leitungen dagegen tragen die Farbe der Quelle, aus der der Strom
+ *  gerade stammt: PV gelb, Netz blau, Akku gruen. Laedt etwa das Netz
+ *  den Akku, ist der ganze Weg vom Netz bis zum Akku blau. Kommt der
+ *  Strom aus zwei Quellen, wechseln sich beide Farben ab.
  * ------------------------------------------------------------------ */
+// Jede Farbe folgt der Sache, die das Geraet tut:
+//   PV gelb wie die Sonne, Netz blau wie im Energie-Dashboard von
+//   Home Assistant, Akku gruen wie ein voller Ladestand, Waermepumpe
+//   orange fuer Waerme, Wallbox tuerkis fuer E-Mobilitaet, Wechselrichter
+//   silbern wie ein Technikgeraet, Haus und Verbraucher weiss und hellgrau,
+//   denn sie nehmen nur Strom ab.
 const FARBE = {
-  pv: "#FFC44D",
-  netz: "#4D9BFF",
-  akku: "#5BE08F",
+  pv: "#FFC107",
+  netz: "#3D8BFF",
+  akku: "#22E07A",
 };
+
+// Eigene Farben der Geraete, die keine Quelle sind.
+const GERAET = {
+  wr: "#A9B8C9",
+  haus: "#FFFFFF",
+  wp: "#FF7A1A",
+  wallbox: "#00D7D2",
+};
+
+// Vorgabe fuer die weiteren Verbraucher, je Verbraucher aenderbar.
+const VERBRAUCHER_FARBEN = ["#D5DCE6"];
+
+/** Farbe aus der Konfiguration: Text wie #RRGGBB oder Liste [r, g, b]. */
+function farbeAus(wert, ersatz) {
+  if (Array.isArray(wert) && wert.length === 3) return `rgb(${wert.map((x) => Number(x) || 0).join(",")})`;
+  if (typeof wert === "string" && wert.trim()) return wert.trim();
+  return ersatz;
+}
 
 // Zweite Farbe nur zeigen, wenn diese Quelle mindestens so viel beitraegt.
 const MISCH_SCHWELLE = 0.2;
@@ -790,13 +814,16 @@ class LutarymEnergyFlowCard extends HTMLElement {
     if (this._config.demo) {
       const sp = this._sp();
       return this._demo
-        ? this._demo.verbraucher.map((v) => ({ ...v, name: v.name[sp] || v.name.en }))
+        ? this._demo.verbraucher.map((v, i) => ({
+          ...v, name: v.name[sp] || v.name.en, farbe: VERBRAUCHER_FARBEN[i % VERBRAUCHER_FARBEN.length],
+        }))
         : [];
     }
     return (this._config.consumers || []).map((v, i) => ({
       id: v.entity,
       name: v.name || this._friendly(v.entity) || `${this._t("verbraucher")} ${i + 1}`,
       symbol: SYMBOLE[v.icon] ? v.icon : "steckdose",
+      farbe: farbeAus(v.color, VERBRAUCHER_FARBEN[i % VERBRAUCHER_FARBEN.length]),
     }));
   }
 
@@ -1282,7 +1309,8 @@ class LutarymEnergyFlowCard extends HTMLElement {
     // Bezug ist blau. Bei Einspeisung traegt das Netz die Farbe dessen,
     // was eingespeist wird, also meist gelb fuer PV.
     const einspeiseMix = mischung([[FARBE.pv, f.pvNetz], [FARBE.akku, f.akkuNetz]]);
-    const netzFarbe = einspeisen ? (einspeiseMix.haupt || FARBE.pv) : FARBE.netz;
+    // Der Netzring bleibt blau, die Leitung zeigt, was eingespeist wird.
+    const netzFarbe = FARBE.netz;
     this._setText("netz-v", this._wText(netzW));
     // Ob bezogen oder eingespeist wird, zeigt die Laufrichtung der Leitung.
     this._setText("netz-s2", zusatz("grid_secondary"));
@@ -1306,10 +1334,9 @@ class LutarymEnergyFlowCard extends HTMLElement {
     this._setText("akku-s2", zusatz("battery_secondary"));
     // Der Ladestandsbogen ist immer akkugruen, wie alles, was aus dem Akku kommt.
     this._setBogen("akku-soc", 0, m.soc === null ? 0 : m.soc / 100, FARBE.akku);
-    // Beim Laden leuchtet der Akku in der Farbe der ladenden Quelle.
+    // Woher der Ladestrom kommt, zeigt die Leitung. Der Akku bleibt gruen.
     const ladeMix = mischung([[FARBE.pv, f.pvAkku], [FARBE.netz, f.netzAkku]]);
-    this._setAktiv("akku", an(m.laden) || an(m.entladen),
-      an(m.laden) ? ladeMix : FARBE.akku);
+    this._setAktiv("akku", an(m.laden) || an(m.entladen), FARBE.akku);
     const akkuRing = this._el("ring-akku");
     if (akkuRing) akkuRing.classList.remove("is-on");
     this._setPuls("akku-blitz", an(m.laden), 1.4);
@@ -1340,19 +1367,13 @@ class LutarymEnergyFlowCard extends HTMLElement {
     const hausIcon = this._el("icon-haus");
     // Was das Haus gerade bezieht, in den Farben der Quellen.
     const hausMix = mischung([[FARBE.pv, f.pvHaus], [FARBE.akku, f.akkuHaus], [FARBE.netz, f.netzHaus]]);
-    if (hausIcon) hausIcon.style.color = an(m.haus) ? hausMix.haupt || "" : "";
+    if (hausIcon) hausIcon.style.color = an(m.haus) ? GERAET.haus : "";
 
     /* ---- Wechselrichter ---- */
     this._zeige("dev-wr", m.hatWr);
     this._setText("wr-v", this._wText(m.wr === null ? null : Math.abs(m.wr)));
     this._setText("wr-s", zusatz("inverter_secondary"));
-    // Der Wechselrichter traegt die Farbe dessen, was gerade durch ihn fliesst.
-    const wrMix = (m.wr || 0) >= 0
-      ? mischung([[FARBE.pv, f.pvHaus + f.pvNetz], [FARBE.akku, f.akkuHaus + f.akkuNetz]])
-      : mischung([[FARBE.netz, f.netzAkku]]);
-    // PV, die direkt in den Akku geht, laeuft auch durch den Wechselrichter.
-    if (!wrMix.haupt && an(m.pv)) wrMix.haupt = FARBE.pv;
-    this._setAktiv("wr", an(Math.abs(m.wr || 0)) || an(m.pv), wrMix);
+    this._setAktiv("wr", an(Math.abs(m.wr || 0)) || an(m.pv), GERAET.wr);
 
     /* ---- Leitungen ---- */
     this._zeige("ltg-pv_wr", m.hatPv);
@@ -1392,7 +1413,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
       this._setText("wp-v", this._verbraucherText(this._id("heatpump"), m.wp, an(m.wp)));
       this._dimm("wp-v", !an(m.wp));
       this._setText("wp-s", zusatz("heatpump_secondary"));
-      this._setAktiv("wp", an(m.wp), hausMix);
+      this._setAktiv("wp", an(m.wp), GERAET.wp);
       this._setDreh("wp-rotor", an(m.wp) ? 90 + 400 * anteil(m.wp, 4000) : 0);
       this._setLeitung("bus_wp", zeigeWp ? m.wp : null, hausMix);
 
@@ -1400,7 +1421,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
       this._setText("wb-v", this._verbraucherText(this._id("wallbox"), m.wb, an(m.wb)));
       this._dimm("wb-v", !an(m.wb));
       this._setText("wb-s", zusatz("wallbox_secondary"));
-      this._setAktiv("wb", an(m.wb), hausMix);
+      this._setAktiv("wb", an(m.wb), GERAET.wallbox);
       this._setPuls("wb-blitz", an(m.wb), 1.6);
       if (!an(m.wb)) {
         const blitz = this._el("wb-blitz");
@@ -1420,7 +1441,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
         this._setLeitung(`exa${i}`, v.w, hausMix);
         this._setText(`ex${i}-v`, this._verbraucherText(v.id, v.w, aktiv));
         this._dimm(`ex${i}-v`, !aktiv);
-        this._setAktiv(`ex${i}`, aktiv, hausMix);
+        this._setAktiv(`ex${i}`, aktiv, v.farbe);
       });
       this._setLeitung("bus_ex", exSumme, hausMix);
       this._setLeitung("ex_l", m.verbraucher[0] ? m.verbraucher[0].w : null, hausMix);
@@ -1852,6 +1873,7 @@ const EDITOR_TEXTE = {
     c_entity: "Verbraucher {n}: Leistung",
     c_name: "Verbraucher {n}: Name",
     c_icon: "Verbraucher {n}: Symbol",
+    c_color: "Verbraucher {n}: Farbe",
     sek_pv: "PV",
     sek_netz: "Netz",
     sek_akku: "Akku",
@@ -1923,6 +1945,7 @@ const EDITOR_TEXTE = {
     c_entity: "Consumer {n}: power",
     c_name: "Consumer {n}: name",
     c_icon: "Consumer {n}: symbol",
+    c_color: "Consumer {n}: colour",
     sek_pv: "Solar",
     sek_netz: "Grid",
     sek_akku: "Battery",
@@ -2007,7 +2030,8 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
         { name: `c${i}_entity`, ort: "c", feld: "entity", idx: i, selector: LEISTUNG },
         { name: `c${i}_name`, ort: "c", feld: "name", idx: i, selector: TEXT },
         { name: `c${i}_icon`, ort: "c", feld: "icon", idx: i,
-          selector: { select: { mode: "dropdown", options: symbole } } }
+          selector: { select: { mode: "dropdown", options: symbole } } },
+        { name: `c${i}_color`, ort: "c", feld: "color", idx: i, selector: { color_rgb: {} } }
       );
     }
     return [
@@ -2081,7 +2105,7 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
   }
 
   _label(feld) {
-    const m = /^c(\d)_(entity|name|icon)$/.exec(feld.name);
+    const m = /^c(\d)_(entity|name|icon|color)$/.exec(feld.name);
     if (m) return this._et(`c_${m[2]}`).replace("{n}", String(Number(m[1]) + 1));
     return this._et(feld.name);
   }

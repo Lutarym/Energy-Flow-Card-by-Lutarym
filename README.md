@@ -10,7 +10,7 @@ Animated Lovelace card for Home Assistant that shows the energy flow between sol
 
 - Built like a real system: solar and battery on the inverter, inverter feeds the home, grid connected to the home
 - Heat pump, wallbox and up to four further consumers on their own distribution line
-- Three colours, one per source: solar yellow, grid blue, battery green. Every line and ring shows where its power comes from, for example blue all the way from the grid to the battery when a dynamic tariff charges the battery. Power from two sources shows both colours alternating
+- Every device has its own colour. The lines show where the power comes from: solar yellow, grid blue, battery green, for example blue all the way from the grid to the battery when a dynamic tariff charges the battery. Power from two sources shows both colours alternating
 - Speed of the running lines follows the power
 - Minimal design: round nodes with small symbols, glowing ring when active
 - Sun rays and heat pump fan turn with the power, wallbox symbol pulses while charging
@@ -81,7 +81,7 @@ consumers:
 
 ### Further consumers
 
-Up to four entries under `consumers`, each with `entity`, `name` and `icon`. A consumer stays visible when its entity is unavailable and shows `n/a`.
+Up to four entries under `consumers`, each with `entity`, `name`, `icon` and optional `color` (`#RRGGBB` or `[r, g, b]`). A consumer stays visible when its entity is unavailable and shows `n/a`.
 Symbols: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, `computer`, `licht`, `auto`.
 
 ### Options

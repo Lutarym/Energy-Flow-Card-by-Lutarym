@@ -10,7 +10,7 @@ Animierte Lovelace Karte für Home Assistant. Sie zeigt den Energiefluss zwische
 
 - Aufbau wie eine echte Anlage: PV und Akku am Wechselrichter, der Wechselrichter speist ins Haus, das Netz hängt am Haus
 - Wärmepumpe, Wallbox und bis zu vier weitere Verbraucher an einer eigenen Verteilung
-- Drei Farben, eine je Quelle: PV gelb, Netz blau, Akku grün. Jede Leitung und jeder Ring zeigt, woher der Strom stammt, etwa blau vom Netz bis in den Akku, wenn ein dynamischer Tarif den Akku lädt. Strom aus zwei Quellen zeigt beide Farben im Wechsel
+- Jedes Gerät hat seine eigene Farbe. Die Leitungen zeigen, woher der Strom stammt: PV gelb, Netz blau, Akku grün, etwa blau vom Netz bis in den Akku, wenn ein dynamischer Tarif den Akku lädt. Strom aus zwei Quellen zeigt beide Farben im Wechsel
 - Das Tempo der Striche folgt der Leistung
 - Minimalistisch: runde Knoten mit kleinen Symbolen, leuchtender Ring bei Betrieb
 - Sonnenstrahlen und Lüfter der Wärmepumpe drehen mit der Leistung, das Wallbox Symbol pulsiert beim Laden
@@ -81,7 +81,7 @@ consumers:
 
 ### Weitere Verbraucher
 
-Bis zu vier Einträge unter `consumers`, jeweils mit `entity`, `name` und `icon`. Ein Verbraucher bleibt sichtbar, wenn seine Entität ausfällt, und zeigt dann `n. v.`.
+Bis zu vier Einträge unter `consumers`, jeweils mit `entity`, `name`, `icon` und optional `color` (`#RRGGBB` oder `[r, g, b]`). Ein Verbraucher bleibt sichtbar, wenn seine Entität ausfällt, und zeigt dann `n. v.`.
 Symbole: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, `computer`, `licht`, `auto`.
 
 ### Optionen
