@@ -24,18 +24,17 @@ const EDITOR_TAG = "energy-flow-card-by-lutarym-editor";
 
 /* ------------------------------------------------------------------ *
  *  Farben
- *  Jedes Geraet hat seine eigene, feste Farbe fuer Ring und Symbol.
- *  Die Leitungen dagegen tragen die Farbe der Quelle, aus der der Strom
- *  gerade stammt: PV gelb, Netz blau, Akku gruen. Laedt etwa das Netz
- *  den Akku, ist der ganze Weg vom Netz bis zum Akku blau. Kommt der
- *  Strom aus zwei Quellen, wechseln sich beide Farben ab.
+ *  Jedes Geraet hat seine eigene, feste Farbe fuer Ring und Symbol, passend
+ *  zu dem, was es tut: PV gelb wie die Sonne, Netz blau wie im Energie-
+ *  Dashboard von Home Assistant, Akku gruen wie ein voller Ladestand,
+ *  Waermepumpe orange fuer Waerme, Wallbox tuerkis fuer E-Mobilitaet,
+ *  Wechselrichter silbern, Haus und Verbraucher weiss und hellgrau.
+ *
+ *  Die Leitungen tragen die Farbe der Quelle, aus der der Strom gerade
+ *  stammt: PV gelb, Netz blau, Akku gruen. Laedt etwa das Netz den Akku,
+ *  ist der ganze Weg vom Netz bis zum Akku blau. Kommt der Strom aus zwei
+ *  Quellen, wechseln sich beide Farben ab.
  * ------------------------------------------------------------------ */
-// Jede Farbe folgt der Sache, die das Geraet tut:
-//   PV gelb wie die Sonne, Netz blau wie im Energie-Dashboard von
-//   Home Assistant, Akku gruen wie ein voller Ladestand, Waermepumpe
-//   orange fuer Waerme, Wallbox tuerkis fuer E-Mobilitaet, Wechselrichter
-//   silbern wie ein Technikgeraet, Haus und Verbraucher weiss und hellgrau,
-//   denn sie nehmen nur Strom ab.
 const FARBE = {
   pv: "#FFC107",
   netz: "#3D8BFF",
@@ -145,7 +144,7 @@ const ICON = {
   wb: `<rect x="-7" y="-11" width="14" height="19" rx="3"/><path d="M0 8 V 12" /><path id="wb-blitz" d="M1 -7 L-3 -1 H 1 L-1 5 L3 -1 H -1 Z" fill="currentColor" stroke="none"/>`,
 };
 
-// Laenge eines Strichs plus Luecke. Muss zur stroke-dasharray im CSS passen.
+// Ersatzlaenge eines Strichmusters, falls ein Stil keine Laenge liefert.
 const STRICH_PERIODE = 20;
 
 /* ------------------------------------------------------------------ *
@@ -173,7 +172,7 @@ const STIL_NAMEN = Object.keys(STILE);
 /* ------------------------------------------------------------------ *
  *  Texte
  * ------------------------------------------------------------------ */
-const SPRACHEN = ["de", "en"];
+const SPRACHEN = ["de", "en", "fr", "ja"];
 const TEXTE = {
   de: {
     pv: "PV",
@@ -205,7 +204,50 @@ const TEXTE = {
     demo: "Demo mode: sample values, no real data.",
     beschreibung: "Animated energy flow card with solar, grid, battery, home, heat pump, wallbox and further consumers.",
   },
+  fr: {
+    pv: "Solaire",
+    netz: "Réseau",
+    akku: "Batterie",
+    haus: "Maison",
+    wr: "Onduleur",
+    wp: "Pompe à chaleur",
+    wallbox: "Borne",
+    verbraucher: "Consommateurs",
+    aus: "arrêt",
+    nv: "n/d",
+    hinweis: "Aucune entité attribuée. Attribuez-les dans l'éditeur ou activez le mode démo.",
+    demo: "Mode démo : valeurs d'exemple, pas de données réelles.",
+    beschreibung: "Carte animée du flux d'énergie : solaire, réseau, batterie, maison, pompe à chaleur, borne et autres consommateurs.",
+  },
+  ja: {
+    pv: "太陽光",
+    netz: "系統",
+    akku: "蓄電池",
+    haus: "家庭",
+    wr: "パワコン",
+    wp: "ヒートポンプ",
+    wallbox: "EV充電器",
+    verbraucher: "その他の機器",
+    aus: "オフ",
+    nv: "取得不可",
+    hinweis: "エンティティが未設定です。エディターで設定するか、デモモードを有効にしてください。",
+    demo: "デモモード：サンプル値です。実際のデータではありません。",
+    beschreibung: "太陽光、系統、蓄電池、家庭、ヒートポンプ、EV充電器、その他の機器のエネルギーフローを表示するアニメーションカード。",
+  },
 };
+
+/** Sprachen mit Dezimalkomma. */
+const KOMMA_SPRACHEN = ["de", "fr"];
+
+/**
+ * Ungefaehre Breite eines Namens in Zeichen. Japanische Zeichen sind
+ * deutlich breiter als lateinische, sonst waere der Hintergrund zu kurz.
+ */
+function textBreite(text) {
+  let n = 0;
+  for (const z of String(text)) n += z.codePointAt(0) >= 0x2e80 ? 1.5 : 1;
+  return n;
+}
 
 function t(schluessel, sprache) {
   const satz = TEXTE[sprache] || TEXTE.en;
@@ -513,7 +555,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
     // Animation
     this._animLoop = null;
     this._animZeit = 0;
-    this._fluss = new Map(); // Leitung -> { tempo, versatz, rueck }
+    this._fluss = new Map(); // Leitung -> { tempo, versatz, rueck, els, zweit }
     this._dreh = new Map(); // Element -> { gradProSek, winkel }
     this._puls = new Map(); // Element -> { dauer, min, max }
     this._elCache = new Map();
@@ -522,16 +564,14 @@ class LutarymEnergyFlowCard extends HTMLElement {
   /* -------------------- Lebenszyklus -------------------- */
 
   connectedCallback() {
-    if (this._built && this._beobachter) {
-      const svg = this.shadowRoot.querySelector("svg");
-      if (svg) this._beobachter.observe(svg);
-    }
+    if (this._built) this._beobachten();
     if (this._built && !this._animLoop) this._startAnimation();
     if (this._config && this._config.demo) this._demoStart();
   }
 
   disconnectedCallback() {
     if (this._beobachter) this._beobachter.disconnect();
+    if (this._sicht) this._sicht.disconnect();
     if (this._animLoop) cancelAnimationFrame(this._animLoop);
     this._animLoop = null;
     this._demoStopp();
@@ -548,6 +588,12 @@ class LutarymEnergyFlowCard extends HTMLElement {
 
   setConfig(config) {
     if (!config) throw new Error("Keine Konfiguration angegeben.");
+    // Home Assistant reicht dieselbe Konfiguration oft mehrfach durch.
+    // Ohne Aenderung bleibt die Karte stehen, die Animation laeuft weiter.
+    const text = JSON.stringify(config);
+    if (this._config && text === this._configText) return;
+    this._configText = text;
+    this._letzte = null;
     this._config = {
       ...DEFAULT_CONFIG,
       ...config,
@@ -570,7 +616,41 @@ class LutarymEnergyFlowCard extends HTMLElement {
   set hass(hass) {
     this._hass = hass;
     if (!this._config) return;
+    // Home Assistant ruft dies bei jeder Zustandsaenderung im ganzen System
+    // auf. Neu gezeichnet wird nur, wenn sich eine genutzte Entitaet oder
+    // die Sprache geaendert hat. Im Demomodus taktet der eigene Zeitgeber.
+    if (this._built && (this._config.demo || this._unveraendert(hass))) return;
     this._render();
+  }
+
+  /** Alle Entitaeten, die die Karte liest. */
+  _genutzteIds() {
+    const c = this._config;
+    const ids = Object.values(c.entities || {}).filter(Boolean);
+    (c.consumers || []).forEach((v) => { if (v.entity) ids.push(v.entity); });
+    return ids;
+  }
+
+  /**
+   * Vergleicht die Zustandsobjekte der genutzten Entitaeten mit dem letzten
+   * Aufruf. Home Assistant erzeugt nur fuer geaenderte Entitaeten neue
+   * Objekte, ein Vergleich der Verweise genuegt daher.
+   */
+  _unveraendert(hass) {
+    const alt = this._letzte;
+    const neu = this._merke(hass);
+    if (!alt || alt.sprache !== neu.sprache || alt.refs.length !== neu.refs.length) return false;
+    return neu.refs.every((r, i) => r === alt.refs[i]);
+  }
+
+  /** Merkt sich die gerade gezeichneten Zustaende fuer den naechsten Vergleich. */
+  _merke(hass) {
+    const states = (hass && hass.states) || {};
+    this._letzte = {
+      refs: this._genutzteIds().map((id) => states[id]),
+      sprache: hass && hass.language,
+    };
+    return this._letzte;
   }
 
   /**
@@ -674,8 +754,10 @@ class LutarymEnergyFlowCard extends HTMLElement {
     if (roh === "unknown" || roh === "unavailable") return "--";
     const einheit = (st.attributes && st.attributes.unit_of_measurement) || "";
     const v = parseFloat(roh);
-    if (!Number.isNaN(v) && String(v) === String(roh).trim()) {
-      const stellen = Math.abs(v) < 10 && !Number.isInteger(v) ? 1 : 0;
+    const zahl = /^-?\d+(?:\.(\d+))?$/.exec(String(roh).trim());
+    if (!Number.isNaN(v) && zahl) {
+      // So viele Nachkommastellen wie Home Assistant liefert, hoechstens zwei.
+      const stellen = Math.min(2, zahl[1] ? zahl[1].length : 0);
       return `${this._zahlText(v, stellen)}${einheit ? ` ${einheit}` : ""}`;
     }
     return `${roh}${einheit ? ` ${einheit}` : ""}`;
@@ -714,7 +796,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
 
   _zahlText(v, stellen) {
     const s = Number(v).toFixed(stellen);
-    return this._sp() === "de" ? s.replace(".", ",") : s;
+    return KOMMA_SPRACHEN.includes(this._sp()) ? s.replace(".", ",") : s;
   }
 
   /** Leistung als Text, unterhalb der Schwelle in W, darueber in kW. */
@@ -849,10 +931,10 @@ class LutarymEnergyFlowCard extends HTMLElement {
       states,
       soc: 62,
       verbraucher: [
-        { id: "demo.c0", name: { de: "Waschmaschine", en: "Washer" }, symbol: "waschmaschine" },
-        { id: "demo.c1", name: { de: "Kühlschrank", en: "Fridge" }, symbol: "kuehlschrank" },
-        { id: "demo.c2", name: { de: "Server", en: "Server" }, symbol: "computer" },
-        { id: "demo.c3", name: { de: "Licht", en: "Lights" }, symbol: "licht" },
+        { id: "demo.c0", name: { de: "Waschmaschine", en: "Washer", fr: "Lave-linge", ja: "洗濯機" }, symbol: "waschmaschine" },
+        { id: "demo.c1", name: { de: "Kühlschrank", en: "Fridge", fr: "Frigo", ja: "冷蔵庫" }, symbol: "kuehlschrank" },
+        { id: "demo.c2", name: { de: "Server", en: "Server", fr: "Serveur", ja: "サーバー" }, symbol: "computer" },
+        { id: "demo.c3", name: { de: "Licht", en: "Lights", fr: "Lumière", ja: "照明" }, symbol: "licht" },
       ],
     };
     this._demoSchritt();
@@ -941,6 +1023,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
       this._gebautEx = anzahl;
     }
     this._update();
+    if (!this._config.demo && this._hass) this._merke(this._hass);
   }
 
   /** Ob die rechte Spalte mit Waermepumpe, Wallbox oder Verbrauchern gebraucht wird. */
@@ -986,17 +1069,49 @@ class LutarymEnergyFlowCard extends HTMLElement {
     this._saeuleZustand = null;
     this._saeuleStand = null;
     this._saeuleMass = null;
-    // Die Leinwand muss der Saeule folgen, wenn sich die Kartengroesse aendert.
-    if (this._beobachter) this._beobachter.disconnect();
-    if (window.ResizeObserver) {
-      this._beobachter = new ResizeObserver(() => this._saeuleLage());
-      const svg = this.shadowRoot.querySelector("svg");
-      if (svg) this._beobachter.observe(svg);
-      const szene = this.shadowRoot.querySelector(".lef-scene");
-      if (szene) this._beobachter.observe(szene);
-    }
+    this._beobachten();
     this._klicks();
     this._startAnimation();
+  }
+
+  /**
+   * Groesse und Sichtbarkeit verfolgen.
+   * Groesse: die Leinwand der Saeule muss mitwandern. Steht der Rahmen noch
+   * aus, weil die Karte beim Aufbau unsichtbar war, wird er jetzt gesetzt.
+   * Sichtbarkeit: ausserhalb des Bildes ruht die Animation und kostet keine
+   * Rechenzeit.
+   */
+  _beobachten() {
+    if (this._beobachter) this._beobachter.disconnect();
+    if (this._sicht) this._sicht.disconnect();
+    const svg = this.shadowRoot.querySelector("svg");
+    const szene = this.shadowRoot.querySelector(".lef-scene");
+    if (window.ResizeObserver) {
+      this._beobachter = new ResizeObserver(() => {
+        // Erst im naechsten Bild anpassen, sonst meldet der Browser eine
+        // Schleife, weil die Anpassung selbst die Groesse aendert.
+        if (this._lageGeplant) return;
+        this._lageGeplant = true;
+        requestAnimationFrame(() => {
+          this._lageGeplant = false;
+          if (!this._rahmenFuer) this._passeRahmen();
+          else this._saeuleLage();
+        });
+      });
+      if (svg) this._beobachter.observe(svg);
+      if (szene) this._beobachter.observe(szene);
+    }
+    if (window.IntersectionObserver) {
+      this._sicht = new IntersectionObserver((eintraege) => {
+        const sichtbar = eintraege.some((e) => e.isIntersecting);
+        this._sichtbar = sichtbar;
+        if (sichtbar) {
+          if (!this._rahmenFuer) this._passeRahmen();
+          if (!this._animLoop) this._startAnimation();
+        }
+      });
+      this._sicht.observe(this);
+    }
   }
 
   /** Klick auf eine Baugruppe oeffnet den Detaildialog von Home Assistant. */
@@ -1005,10 +1120,10 @@ class LutarymEnergyFlowCard extends HTMLElement {
     const ueber = sr.getElementById("bat-ueber");
     const saeule = sr.getElementById("akku-saeule");
     if (ueber && saeule) ueber.addEventListener("click", () => saeule.dispatchEvent(new Event("click")));
-    sr.querySelectorAll("[data-entity]").forEach((el) => {
+    sr.querySelectorAll("[data-entity], [data-entity-id]").forEach((el) => {
       el.addEventListener("click", () => {
         if (this._config.demo) return;
-        const id = this._id(el.dataset.entity) || el.dataset.entityId;
+        const id = el.dataset.entityId || (el.dataset.entity ? this._id(el.dataset.entity) : "");
         if (!id) return;
         this.dispatchEvent(
           new CustomEvent("hass-more-info", {
@@ -1057,19 +1172,20 @@ class LutarymEnergyFlowCard extends HTMLElement {
    * Ein Knoten: Kreis mit Leuchtring, kleinem Symbol und Werten.
    * Alles innen ist relativ zur Kreismitte gezeichnet.
    */
-  _knoten({ id, pos, r, label: name, labelUnten, entity, icon, inhalt }) {
+  _knoten({ id, pos, r, label: name, labelUnten, entity, entityId, icon, inhalt }) {
     const radius = r || G.R;
     const f = this._fs();
     // Ohne Namen bleibt nur der Kreis, der Rahmen schneidet den Platz weg.
     const label = this._config.show_names === false ? "" : name;
     const ly = labelUnten ? radius + (radius > 40 ? 20 : 14) * f : -(radius + 12);
     return `
-      <g class="node" id="dev-${id}" transform="translate(${pos.x} ${pos.y})" ${entity ? `data-entity="${entity}"` : ""}>
+      <g class="node" id="dev-${id}" transform="translate(${pos.x} ${pos.y})"
+         ${entity ? `data-entity="${entity}"` : ""} ${entityId ? `data-entity-id="${escapeHtml(entityId)}"` : ""}>
         <circle id="glow-${id}" class="node-glow" r="${radius}" opacity="0" filter="url(#glowBlur)"/>
         <circle class="node-bg" r="${radius}"/>
         <circle id="ring-${id}" class="node-ring" r="${radius}"/>
-        ${label ? `<rect class="label-bg" x="${-(String(label).length * (radius > 40 ? 5.2 : 3.8) * f + 8)}" y="${ly - 13 * f}"
-              width="${String(label).length * (radius > 40 ? 10.4 : 7.6) * f + 16}" height="${18 * f}" rx="${9 * f}"/>
+        ${label ? `<rect class="label-bg" x="${-(textBreite(label) * (radius > 40 ? 5.2 : 3.8) * f + 8)}" y="${ly - 13 * f}"
+              width="${textBreite(label) * (radius > 40 ? 10.4 : 7.6) * f + 16}" height="${18 * f}" rx="${9 * f}"/>
         <text class="node-label${radius > 40 ? "" : " klein"}" id="${id}-label" y="${ly}" text-anchor="middle">${escapeHtml(label)}</text>` : ""}
         <g class="icon" id="icon-${id}" transform="translate(0 ${radius > 40 ? -30 : -8})${radius > 40 ? "" : " scale(0.75)"}">${icon}</g>
         ${inhalt}
@@ -1097,6 +1213,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
   }
 
   _svg() {
+    const c = this._config;
     const rechts = this._zeigtRechts();
     const akku = this._zeigtAkku();
     const ex = this._verbraucherListe();
@@ -1113,11 +1230,11 @@ class LutarymEnergyFlowCard extends HTMLElement {
       ${ex.map((_, i) => this._leitung(`exa${i}`, exAbzweig(i))).join("")}
       ${ex.length ? `<circle cx="310" cy="${G.EX_SCHIENE}" r="6" class="knotenpunkt"/>` : ""}
       ${this._knoten({ id: "wp", pos: G.WP, label: this._name("heatpump", "wp"), entity: "heatpump",
-        icon: ICON.wp, inhalt: this._werte("wp", "wp-c") })}
+        icon: ICON.wp, inhalt: this._werte("wp") })}
       ${this._knoten({ id: "wb", pos: G.WB, label: this._name("wallbox"), entity: "wallbox",
-        icon: ICON.wb, inhalt: this._werte("wb", "wb-c") })}
+        icon: ICON.wb, inhalt: this._werte("wb") })}
       ${ex.map((v, i) => this._knoten({
-        id: `ex${i}`, r: G.R_KLEIN, labelUnten: true,
+        id: `ex${i}`, r: G.R_KLEIN, labelUnten: true, entityId: c.demo ? "" : v.id,
         pos: { x: G.EX_X[i], y: G.EX_Y },
         label: kuerzen(v.name, 9),
         icon: `<g id="ex${i}-sym">${SYMBOLE[v.symbol] || SYMBOLE.steckdose}</g>`,
@@ -1136,7 +1253,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
       ${rechteSpalte}
 
       ${this._knoten({ id: "pv", pos: G.PV, label: this._name("pv"), entity: "pv",
-        icon: ICON.pv, inhalt: this._werte("pv", "pv-c") })}
+        icon: ICON.pv, inhalt: this._werte("pv") })}
       ${this._knoten({ id: "wr", pos: G.WR, label: this._name("inverter", "wr"),
         entity: this._config.entities.inverter ? "inverter" : "",
         icon: ICON.wr, inhalt: this._werte("wr") })}
@@ -1308,26 +1425,18 @@ class LutarymEnergyFlowCard extends HTMLElement {
 
     /* ---- Netz ---- */
     this._zeige("dev-netz", m.hatNetz);
+    // Der Wert zeigt Bezug oder Einspeisung, die Richtung zeigt die Leitung.
     const einspeisen = an(m.einspeisung) && !an(m.bezug);
     const netzW = einspeisen ? m.einspeisung : m.bezug;
-    // Bezug ist blau. Bei Einspeisung traegt das Netz die Farbe dessen,
-    // was eingespeist wird, also meist gelb fuer PV.
+    // Farbe der Einspeiseleitung: das, was eingespeist wird.
     const einspeiseMix = mischung([[FARBE.pv, f.pvNetz], [FARBE.akku, f.akkuNetz]]);
-    // Der Netzring bleibt blau, die Leitung zeigt, was eingespeist wird.
-    const netzFarbe = FARBE.netz;
     this._setText("netz-v", this._wText(netzW));
-    // Ob bezogen oder eingespeist wird, zeigt die Laufrichtung der Leitung.
     this._setText("netz-s2", zusatz("grid_secondary"));
-    this._setAktiv("netz", an(netzW), netzFarbe);
+    this._setAktiv("netz", an(netzW), FARBE.netz);
 
     /* ---- Akku ---- */
     this._zeige("dev-akku", m.hatAkku);
     this._setText("akku-v", m.soc === null ? "--" : `${Math.round(m.soc)} %`);
-    // Ob geladen oder entladen wird, zeigt die Laufrichtung der Leitung.
-    let akkuW = null;
-    if (m.laden !== null || m.entladen !== null) {
-      akkuW = an(m.laden) ? m.laden : an(m.entladen) ? m.entladen : 0;
-    }
     // Statt der Leistung steht im Akku die gespeicherte Energie:
     // Ladestand mal maximale Kapazitaet.
     const kap = this._kapazitaet();
@@ -1336,9 +1445,10 @@ class LutarymEnergyFlowCard extends HTMLElement {
       : "");
 
     this._setText("akku-s2", zusatz("battery_secondary"));
-    // Der Ladestandsbogen ist immer akkugruen, wie alles, was aus dem Akku kommt.
+    // Der Ladestandsbogen ist immer akkugruen.
     this._setBogen("akku-soc", 0, m.soc === null ? 0 : m.soc / 100, FARBE.akku);
-    // Woher der Ladestrom kommt, zeigt die Leitung. Der Akku bleibt gruen.
+    // Woher der Ladestrom kommt, zeigt die Leitung. Der Akku bleibt gruen,
+    // sein Ring ist der Ladestandsbogen.
     const ladeMix = mischung([[FARBE.pv, f.pvAkku], [FARBE.netz, f.netzAkku]]);
     this._setAktiv("akku", an(m.laden) || an(m.entladen), FARBE.akku);
     const akkuRing = this._el("ring-akku");
@@ -1369,7 +1479,8 @@ class LutarymEnergyFlowCard extends HTMLElement {
     }
     // Das Haus bekommt keinen eigenen Ring, die Herkunftsboegen sind sein Ring.
     const hausIcon = this._el("icon-haus");
-    // Was das Haus gerade bezieht, in den Farben der Quellen.
+    // Was das Haus gerade bezieht, in den Farben der Quellen. Diese Farbe
+    // tragen auch die Leitungen zu den Verbrauchern.
     const hausMix = mischung([[FARBE.pv, f.pvHaus], [FARBE.akku, f.akkuHaus], [FARBE.netz, f.netzHaus]]);
     if (hausIcon) hausIcon.style.color = an(m.haus) ? GERAET.haus : "";
 
@@ -1451,7 +1562,6 @@ class LutarymEnergyFlowCard extends HTMLElement {
       this._setLeitung("ex_l", m.verbraucher[0] ? m.verbraucher[0].w : null, hausMix);
       this._setLeitung("ex_r", rechtsEx, hausMix);
 
-      // Waermepumpe, Wallbox und Verbraucher haben eigene Leitungen aus dem Haus.
     }
 
     ["pv", "wr", "akku", "netz", "haus", "wp", "wb"].forEach((id) => this._zentriere(id));
@@ -1650,7 +1760,9 @@ class LutarymEnergyFlowCard extends HTMLElement {
   _startAnimation() {
     let zuletzt = performance.now();
     const tick = (jetzt) => {
-      if (!this.isConnected) {
+      // Getrennt oder ausserhalb des Bildes: Schleife beenden. Sie startet
+      // wieder, sobald die Karte sichtbar wird.
+      if (!this.isConnected || this._sichtbar === false) {
         this._animLoop = null;
         return;
       }
@@ -1748,7 +1860,9 @@ class LutarymEnergyFlowCard extends HTMLElement {
       .bat-pct {
         position: absolute; left: 0; right: 0; bottom: 8px; text-align: center;
         font-weight: 700; color: #FFFFFF; text-shadow: 0 1px 3px rgba(0,0,0,0.6);
-        font-family: ui-monospace, "SF Mono", Menlo, monospace; pointer-events: none;
+        font-family: Roboto, "Segoe UI", system-ui, -apple-system,
+          "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", Meiryo, sans-serif;
+        font-variant-numeric: tabular-nums; pointer-events: none;
       }
       .bat-pct[hidden] { display: none; }
       .lef-hint, .lef-demo {
@@ -1782,7 +1896,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
       .flow:not(.is-on), .flow-glow:not(.is-on) { opacity: 0 !important; }
       .knotenpunkt { fill: #111821; stroke: #2E3848; stroke-width: 2; }
 
-      .node[data-entity] { cursor: pointer; }
+      .node[data-entity], .node[data-entity-id] { cursor: pointer; }
       .node-bg { fill: #111821; stroke: #2A3445; stroke-width: 2; }
       .node-glow { fill: none; stroke-width: 8; }
       .node-ring {
@@ -1798,7 +1912,8 @@ class LutarymEnergyFlowCard extends HTMLElement {
       /* Klare Schrift: hell auf dunkel, kraeftig, mit dunkler Kontur, damit
          sie auch ueber Leuchtschein und Leitungen gut lesbar bleibt. */
       .node-label, .value, .value-k, .sub {
-        font-family: Roboto, "Segoe UI", system-ui, -apple-system, sans-serif;
+        font-family: Roboto, "Segoe UI", system-ui, -apple-system,
+          "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", Meiryo, sans-serif;
         paint-order: stroke; stroke: #0B1017; stroke-linejoin: round;
       }
       .node-label {
@@ -1883,7 +1998,6 @@ const EDITOR_TEXTE = {
     wallbox: "Ladeleistung Wallbox",
     wallbox_secondary: "Zusatzzeile (z.B. Ladestand Auto)",
     name_wallbox: "Eigener Name",
-    name_consumers: "Eigener Name des Bereichs",
     c_entity: "Verbraucher {n}: Leistung",
     c_name: "Verbraucher {n}: Name",
     c_icon: "Verbraucher {n}: Symbol",
@@ -1956,7 +2070,6 @@ const EDITOR_TEXTE = {
     wallbox: "Wallbox charging power",
     wallbox_secondary: "Extra line (e.g. car state of charge)",
     name_wallbox: "Own name",
-    name_consumers: "Own name of section",
     c_entity: "Consumer {n}: power",
     c_name: "Consumer {n}: name",
     c_icon: "Consumer {n}: symbol",
@@ -1973,6 +2086,150 @@ const EDITOR_TEXTE = {
     sym: {
       steckdose: "Socket", waschmaschine: "Washer", spuelmaschine: "Dishwasher",
       herd: "Stove", kuehlschrank: "Fridge", computer: "Computer", licht: "Light", auto: "Car",
+    },
+  },
+  fr: {
+    allgemein: "Général",
+    language: "Langue",
+    demo: "Mode démo (valeurs d'exemple)",
+    show_names: "Afficher les noms",
+    animate: "Animation",
+    animation_speed: "Vitesse d'animation (1 = normal)",
+    font_scale: "Taille du texte (1 = normal)",
+    animation_style: "Style d'animation des lignes",
+    stil: {
+      striche: "Tirets", punkte: "Points", perlen: "Perles", lang: "Longs tirets",
+      komet: "Comète", morse: "Morse", lauflicht: "Lumière mobile", neon: "Néon",
+      puls: "Pulsation", blitz: "Éclair",
+    },
+    max_power: "Puissance pour la vitesse maximale (W)",
+    kw_threshold: "Afficher en kW à partir de (W)",
+    min_flow: "En dessous, considéré comme à l'arrêt (W)",
+    inverter: "Puissance AC de l'onduleur (vide = calculée)",
+    inverter_secondary: "Ligne supplémentaire (ex. température)",
+    name_inverter: "Nom personnalisé",
+    sek_wr: "Onduleur",
+    pv: "Puissance solaire",
+    pv_secondary: "Ligne supplémentaire (ex. production du jour)",
+    name_pv: "Nom personnalisé",
+    grid: "Puissance réseau (une entité, positif = soutirage)",
+    grid_invert: "Inverser le signe",
+    grid_import: "ou séparé : soutirage",
+    grid_export: "ou séparé : injection",
+    grid_secondary: "Ligne supplémentaire (ex. prix)",
+    name_grid: "Nom personnalisé",
+    battery: "Puissance batterie (une entité, positif = décharge)",
+    battery_invert: "Inverser le signe",
+    battery_charge: "ou séparé : charge",
+    battery_discharge: "ou séparé : décharge",
+    battery_soc: "État de charge (%)",
+    battery_capacity: "Capacité maximale (entité, ex. Fronius capacity_maximum)",
+    battery_capacity_kwh: "ou valeur fixe en kWh si aucune entité",
+    battery_bar: "Afficher la colonne batterie à droite",
+    battery_bar_animation: "Animation de la colonne batterie",
+    battery_bar_percent: "Afficher le pourcentage dans la colonne",
+    battery_bar_width: "Largeur de la colonne (% de sa hauteur)",
+    saeule: ["Statique", "Vagues", "Pulsation", "Bulles", "Paillettes", "Remplissage doux",
+      "Miroitement", "Éclair", "Pluie", "Feu", "Matrix", "Balayage", "Battement de cœur"],
+    battery_secondary: "Ligne supplémentaire (ex. température)",
+    name_battery: "Nom personnalisé",
+    home: "Consommation de la maison (vide = calculée)",
+    home_secondary: "Ligne supplémentaire",
+    name_home: "Nom personnalisé",
+    heatpump: "Puissance de la pompe à chaleur",
+    heatpump_secondary: "Ligne supplémentaire (ex. température de départ)",
+    name_heatpump: "Nom personnalisé",
+    wallbox: "Puissance de charge de la borne",
+    wallbox_secondary: "Ligne supplémentaire (ex. charge de la voiture)",
+    name_wallbox: "Nom personnalisé",
+    c_entity: "Consommateur {n} : puissance",
+    c_name: "Consommateur {n} : nom",
+    c_icon: "Consommateur {n} : symbole",
+    c_color: "Consommateur {n} : couleur",
+    sek_pv: "Solaire",
+    sek_netz: "Réseau",
+    sek_akku: "Batterie",
+    sek_haus: "Maison",
+    sek_wp: "Pompe à chaleur",
+    sek_wb: "Borne",
+    sek_ex: "Autres consommateurs",
+    lade: "Chargement de l'éditeur …",
+    auto: "Automatique",
+    sym: {
+      steckdose: "Prise", waschmaschine: "Lave-linge", spuelmaschine: "Lave-vaisselle",
+      herd: "Cuisinière", kuehlschrank: "Réfrigérateur", computer: "Ordinateur", licht: "Lumière", auto: "Voiture",
+    },
+  },
+  ja: {
+    allgemein: "全般",
+    language: "言語",
+    demo: "デモモード（サンプル値）",
+    show_names: "名前を表示",
+    animate: "アニメーション",
+    animation_speed: "アニメーション速度（1 = 標準）",
+    font_scale: "文字サイズ（1 = 標準）",
+    animation_style: "ラインのアニメーション",
+    stil: {
+      striche: "破線", punkte: "点", perlen: "パール", lang: "長い破線",
+      komet: "彗星", morse: "モールス", lauflicht: "流れる光", neon: "ネオン",
+      puls: "パルス", blitz: "稲妻",
+    },
+    max_power: "最高速度になる電力（W）",
+    kw_threshold: "この電力から kW 表示（W）",
+    min_flow: "これ未満は停止とみなす（W）",
+    inverter: "パワコンの AC 出力（空欄 = 自動計算）",
+    inverter_secondary: "追加行（例：温度）",
+    name_inverter: "表示名",
+    sek_wr: "パワコン",
+    pv: "太陽光発電の電力",
+    pv_secondary: "追加行（例：本日の発電量）",
+    name_pv: "表示名",
+    grid: "系統電力（1 つのエンティティ、正 = 買電）",
+    grid_invert: "符号を反転",
+    grid_import: "または個別：買電",
+    grid_export: "または個別：売電",
+    grid_secondary: "追加行（例：電力単価）",
+    name_grid: "表示名",
+    battery: "蓄電池の電力（1 つのエンティティ、正 = 放電）",
+    battery_invert: "符号を反転",
+    battery_charge: "または個別：充電",
+    battery_discharge: "または個別：放電",
+    battery_soc: "充電率（%）",
+    battery_capacity: "最大容量（エンティティ、例：Fronius capacity_maximum）",
+    battery_capacity_kwh: "またはエンティティがない場合の固定値（kWh）",
+    battery_bar: "右側に蓄電池バーを表示",
+    battery_bar_animation: "蓄電池バーのアニメーション",
+    battery_bar_percent: "蓄電池バーに % を表示",
+    battery_bar_width: "蓄電池バーの幅（高さに対する %）",
+    saeule: ["静止", "波", "脈動", "泡", "きらめき", "なめらかに充填",
+      "揺らめき", "稲妻", "雨", "炎", "マトリックス", "スキャンライン", "心拍"],
+    battery_secondary: "追加行（例：温度）",
+    name_battery: "表示名",
+    home: "家庭の消費電力（空欄 = 自動計算）",
+    home_secondary: "追加行",
+    name_home: "表示名",
+    heatpump: "ヒートポンプの電力",
+    heatpump_secondary: "追加行（例：往き温度）",
+    name_heatpump: "表示名",
+    wallbox: "EV充電器の充電電力",
+    wallbox_secondary: "追加行（例：車の充電率）",
+    name_wallbox: "表示名",
+    c_entity: "機器 {n}：電力",
+    c_name: "機器 {n}：名前",
+    c_icon: "機器 {n}：アイコン",
+    c_color: "機器 {n}：色",
+    sek_pv: "太陽光",
+    sek_netz: "系統",
+    sek_akku: "蓄電池",
+    sek_haus: "家庭",
+    sek_wp: "ヒートポンプ",
+    sek_wb: "EV充電器",
+    sek_ex: "その他の機器",
+    lade: "エディターを読み込み中 …",
+    auto: "自動",
+    sym: {
+      steckdose: "コンセント", waschmaschine: "洗濯機", spuelmaschine: "食洗機",
+      herd: "コンロ", kuehlschrank: "冷蔵庫", computer: "パソコン", licht: "照明", auto: "車",
     },
   },
 };
@@ -2056,6 +2313,8 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
           { value: "auto", label: this._et("auto") },
           { value: "de", label: "Deutsch" },
           { value: "en", label: "English" },
+          { value: "fr", label: "Français" },
+          { value: "ja", label: "日本語" },
         ] } } },
         { name: "show_names", selector: JA_NEIN },
         { name: "animate", selector: JA_NEIN },
@@ -2116,7 +2375,7 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
         { name: "wallbox_secondary", ort: "e", selector: BELIEBIG },
         { name: "name_wallbox", selector: TEXT },
       ] },
-      { titel: "sek_ex", felder: [{ name: "name_consumers", selector: TEXT }, ...verbraucher] },
+      { titel: "sek_ex", felder: verbraucher },
     ];
   }
 
@@ -2242,17 +2501,21 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
   }
 }
 
-customElements.define(CARD_TAG, LutarymEnergyFlowCard);
-customElements.define(EDITOR_TAG, LutarymEnergyFlowCardEditor);
+// Wird die Datei zweimal geladen, etwa ueber HACS und zusaetzlich als
+// eigene Ressource, wuerde eine zweite Registrierung einen Fehler werfen.
+if (!customElements.get(CARD_TAG)) customElements.define(CARD_TAG, LutarymEnergyFlowCard);
+if (!customElements.get(EDITOR_TAG)) customElements.define(EDITOR_TAG, LutarymEnergyFlowCardEditor);
 
 window.customCards = window.customCards || [];
-window.customCards.push({
-  type: CARD_TAG,
-  name: "Energy-Flow-Card-by-Lutarym",
-  description: TEXTE.en.beschreibung,
-  preview: true,
-  documentationURL: "https://github.com/Lutarym/Energy-Flow-Card-by-Lutarym",
-});
+if (!window.customCards.some((k) => k.type === CARD_TAG)) {
+  window.customCards.push({
+    type: CARD_TAG,
+    name: "Energy Flow Card by Lutarym",
+    description: TEXTE.en.beschreibung,
+    preview: true,
+    documentationURL: "https://github.com/Lutarym/Energy-Flow-Card-by-Lutarym",
+  });
+}
 
 console.info(
   `%c ENERGY FLOW BY LUTARYM %c ${CARD_VERSION} `,

@@ -1,10 +1,14 @@
-# Energy-Flow-Card-by-Lutarym
+# Energy Flow Card by Lutarym
 
-**English** · [Deutsch](README.de.md)
+Version 1.0.0
+
+**English** · [Deutsch](README.de.md) · [Français](README.fr.md) · [日本語](README.ja.md)
 
 ![Screenshot of the card](https://raw.githubusercontent.com/Lutarym/Energy-Flow-Card-by-Lutarym/main/docs/screenshot-en.png)
 
 Animated Lovelace card for Home Assistant that shows the energy flow between solar, inverter, battery, grid and home, plus heat pump, wallbox and up to four further consumers.
+
+The card is optimized for dynamic electricity tariffs: the line colours show at any time where the power comes from and where it goes, for example when cheap grid power charges the battery.
 
 ## Features
 
@@ -18,7 +22,7 @@ Animated Lovelace card for Home Assistant that shows the energy flow between sol
 - Battery bar on the right with 13 animations, taken from lutarym-battery-card
 - Optional extra line for each device, for example yield today, flow temperature or car state of charge
 - Click on a device opens its entity in Home Assistant
-- Visual editor, demo mode, English and German
+- Visual editor, demo mode, English, German, French and Japanese
 
 ## Requirements
 
@@ -88,7 +92,7 @@ Symbols: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, 
 
 | Option | Default | Meaning |
 |---|---|---|
-| `language` | `auto` | `auto`, `de` or `en` |
+| `language` | `auto` | `auto`, `en`, `de`, `fr` or `ja` |
 | `demo` | `false` | Sample values for trying out |
 | `show_names` | `true` | Show the names above and below the circles |
 | `animate` | `true` | Show the animation |
@@ -105,7 +109,7 @@ Symbols: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, 
 | `min_flow` | `10` | Lower power in W counts as idle |
 | `grid_invert` | `false` | Invert the sign of `grid` |
 | `battery_invert` | `false` | Invert the sign of `battery` |
-| `name_pv`, `name_inverter`, `name_grid`, `name_battery`, `name_home`, `name_heatpump`, `name_wallbox`, `name_consumers` | | Own names, empty uses the card language |
+| `name_pv`, `name_inverter`, `name_grid`, `name_battery`, `name_home`, `name_heatpump`, `name_wallbox` | | Own names, empty uses the card language |
 
 ## License
 
