@@ -14,6 +14,7 @@ Animierte Lovelace Karte für Home Assistant. Sie zeigt den Energiefluss zwische
 - Minimalistisch: runde Knoten mit kleinen Symbolen, leuchtender Ring bei Betrieb
 - Sonnenstrahlen und Lüfter der Wärmepumpe drehen mit der Leistung, das Wallbox Symbol pulsiert beim Laden
 - Der Ring des Akkus zeigt den Ladestand, der Ring des Hauses die Herkunft des Stroms
+- Akkusäule rechts mit 13 Animationen, übernommen aus lutarym-battery-card
 - Optionale Zusatzzeile je Baugruppe, zum Beispiel Ertrag heute, Vorlauf oder Ladestand des Autos
 - Klick auf eine Baugruppe öffnet ihre Entität in Home Assistant
 - Visueller Editor, Demomodus, Deutsch und Englisch
@@ -92,6 +93,9 @@ Symbole: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, 
 | `animation_speed` | `1` | Faktor für die Animationsgeschwindigkeit, 0,25 bis 3 |
 | `font_scale` | `1` | Faktor für alle Schriften, 0,7 bis 1,3 |
 | `animation_style` | `striche` | Animation der Leitungen: `striche`, `punkte`, `perlen`, `lang`, `komet`, `morse`, `lauflicht`, `neon`, `puls`, `blitz` |
+| `battery_bar` | `true` | Akkusäule rechts, über die ganze Höhe der Karte |
+| `battery_bar_animation` | `1` | Animation der Akkusäule, 0 bis 12: statisch, Wellen, Pulsieren, Blasen, Glitzer, sanft auffüllend, Schimmern, Blitz, Regen, Feuer, Matrix, Scanline, Herzschlag |
+| `battery_bar_percent` | `true` | Prozent in der Akkusäule anzeigen |
 | `battery_capacity_kwh` | `0` | Feste Kapazität des Akkus in kWh, falls keine Entität `battery_capacity` gesetzt ist |
 | `max_power` | `10000` | Leistung in W, bei der die Striche am schnellsten laufen |
 | `kw_threshold` | `1000` | Ab dieser Leistung in W wird in kW angezeigt |

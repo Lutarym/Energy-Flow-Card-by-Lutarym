@@ -189,6 +189,10 @@ const DEFAULT_CONFIG = {
   font_scale: 1,
   // Aussehen der laufenden Leitungen, siehe STILE.
   animation_style: "striche",
+  // Akkusaeule rechts neben dem Fluss.
+  battery_bar: true,
+  battery_bar_animation: 1,
+  battery_bar_percent: true,
   // Kapazitaet des Akkus in kWh, falls keine Entitaet sie liefert.
   battery_capacity_kwh: 0,
   // Leistung, bei der die Striche am schnellsten laufen, in Watt.
@@ -309,6 +313,174 @@ function verteile(m) {
   return { pvHaus, pvAkku, pvNetz, netzHaus, netzAkku, akkuHaus, akkuNetz };
 }
 
+/* ------------------------------------------------------------------ *
+ *  Akkusaeule
+ *  Uebernommen aus lutarym-battery-card von Lutarym. Gezeichnet wird auf
+ *  einer Leinwand, die genau ueber dem Innenraum der Saeule liegt.
+ *  Die Bewegungen laufen hier nach Zeit statt nach Bildern, damit sie auf
+ *  jedem Geraet gleich schnell sind.
+ * ------------------------------------------------------------------ */
+const SAEULE_STILE = 13;
+
+function saeuleLerp(a, b, x) { return a + (b - a) * x; }
+
+/** Farbverlauf der Batteriekarte: rot leer, gelb halb, gruen voll. */
+function saeuleRGB(p) {
+  const r0 = 220, g0 = 30, b0 = 30, r1 = 253, g1 = 216, b1 = 53, r2 = 46, g2 = 125, b2 = 50;
+  let r, g, b;
+  if (p <= 50) {
+    const x = p / 50;
+    r = saeuleLerp(r0, r1, x); g = saeuleLerp(g0, g1, x); b = saeuleLerp(b0, b1, x);
+  } else {
+    const x = (p - 50) / 50;
+    r = saeuleLerp(r1, r2, x); g = saeuleLerp(g1, g2, x); b = saeuleLerp(b1, b2, x);
+  }
+  return [Math.round(r), Math.round(g), Math.round(b)];
+}
+
+/**
+ * Zeichnet die Fuellung. st haelt Teilchen und Zwischenwerte,
+ * k ist die Zahl der vergangenen Bilder bei 60 Bildern je Sekunde.
+ */
+function saeuleZeichnen(ctx, W, H, pct, t, mode, st, k) {
+  const fillH = H * pct / 100;
+  if (mode === 5) {
+    if (st.anzeige < pct) st.anzeige = Math.min(pct, st.anzeige + 0.5 * k);
+    else st.anzeige = pct;
+  }
+  if (fillH <= 0 && mode !== 5) return;
+  const yBase = H - fillH;
+  const drift = Math.sin(t) * 4;
+  const [r1, g1, b1] = saeuleRGB(Math.max(0, pct - 15 + drift));
+  const [r2, g2, b2] = saeuleRGB(Math.min(100, pct + 15 + drift));
+  // Groessen der Originalkarte sind fuer etwa 28 px Breite gedacht.
+  const m = Math.max(1, W / 28);
+  const verlauf = (y) => {
+    const g = ctx.createLinearGradient(0, H, 0, y);
+    g.addColorStop(0, `rgb(${r1},${g1},${b1})`);
+    g.addColorStop(1, `rgb(${r2},${g2},${b2})`);
+    return g;
+  };
+  const voll = () => { ctx.fillStyle = verlauf(yBase); ctx.fillRect(0, yBase, W, fillH); };
+
+  if (mode === 0) {
+    voll();
+  } else if (mode === 1) {
+    const amp = Math.max(2, 5 * (1 - pct / 100)) * m;
+    ctx.beginPath(); ctx.moveTo(0, H);
+    for (let x = 0; x <= W; x += 1) {
+      const y = yBase + amp * Math.sin(t * 2 + (x / m) * 0.25) + amp * 0.4 * Math.sin(t * 1.5 + (x / m) * 0.4);
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(W, H); ctx.closePath();
+    ctx.fillStyle = verlauf(yBase); ctx.fill();
+  } else if (mode === 2) {
+    const pY = yBase + Math.sin(t * 2) * (H * 0.03);
+    ctx.fillStyle = verlauf(pY); ctx.fillRect(0, pY, W, H - pY);
+  } else if (mode === 3) {
+    voll();
+    if (Math.random() < 0.08 * k && st.teile.length < 12 * m) {
+      st.teile.push({ x: Math.random() * W, y: H, r: (1 + Math.random() * 3) * m, v: (0.3 + Math.random() * 0.5) * m });
+    }
+    st.teile = st.teile.filter((b) => b.y > yBase);
+    for (const b of st.teile) {
+      b.y -= b.v * k;
+      ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(255,255,255,0.5)"; ctx.lineWidth = 0.8 * m; ctx.stroke();
+    }
+  } else if (mode === 4) {
+    voll();
+    if (Math.random() < 0.15 * k && st.teile.length < 20 * m) {
+      st.teile.push({ x: Math.random() * W, y: yBase + Math.random() * fillH, l: 1 });
+    }
+    st.teile = st.teile.filter((g) => g.l > 0);
+    for (const g of st.teile) {
+      ctx.beginPath(); ctx.arc(g.x, g.y, 1.5 * m, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${g.l})`; ctx.fill();
+      g.l -= 0.04 * k;
+    }
+  } else if (mode === 5) {
+    const dH = H * st.anzeige / 100;
+    const dY = H - dH;
+    ctx.fillStyle = verlauf(dY); ctx.fillRect(0, dY, W, dH);
+  } else if (mode === 6) {
+    const a = 0.7 + 0.3 * Math.sin(t * 2);
+    const g = ctx.createLinearGradient(0, H, 0, yBase);
+    g.addColorStop(0, `rgba(${r1},${g1},${b1},${a})`);
+    g.addColorStop(1, `rgba(${r2},${g2},${b2},${a})`);
+    ctx.fillStyle = g; ctx.fillRect(0, yBase, W, fillH);
+  } else if (mode === 7) {
+    voll();
+    if (Math.sin(t * 3) > 0.7) {
+      ctx.save();
+      ctx.translate(W / 2, yBase + fillH * 0.2);
+      ctx.fillStyle = "rgba(255,255,180,0.9)";
+      ctx.beginPath();
+      const z = Math.min(W, fillH) * 0.35;
+      ctx.moveTo(z * 0.2, 0); ctx.lineTo(-z * 0.1, z * 0.45);
+      ctx.lineTo(z * 0.1, z * 0.45); ctx.lineTo(-z * 0.2, z * 0.9);
+      ctx.lineTo(z * 0.35, z * 0.35); ctx.lineTo(z * 0.1, z * 0.35);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+  } else if (mode === 8) {
+    voll();
+    if (Math.random() < 0.2 * k && st.teile.length < 25 * m) {
+      st.teile.push({ x: Math.random() * W, y: yBase, v: (1 + Math.random() * 2) * m, len: (3 + Math.random() * 5) * m });
+    }
+    st.teile = st.teile.filter((r) => r.y < H);
+    for (const r of st.teile) {
+      r.y += r.v * k;
+      ctx.beginPath(); ctx.moveTo(r.x, r.y); ctx.lineTo(r.x, r.y + r.len);
+      ctx.strokeStyle = "rgba(255,255,255,0.4)"; ctx.lineWidth = m; ctx.stroke();
+    }
+  } else if (mode === 9) {
+    voll();
+    const flH = Math.min(fillH * 0.3, 15 * m);
+    const sp = 3 * m;
+    for (let x = 0; x < W; x += sp) {
+      const fl = flH * (0.5 + 0.5 * Math.sin(t * 4 + (x / m) * 0.5));
+      const g = ctx.createLinearGradient(0, yBase, 0, yBase - fl);
+      g.addColorStop(0, "rgba(255,100,0,0.8)");
+      g.addColorStop(1, "rgba(255,220,0,0)");
+      ctx.fillStyle = g; ctx.fillRect(x, yBase - fl, sp, fl);
+    }
+  } else if (mode === 10) {
+    voll();
+    const colW = 8 * Math.min(m, 2);
+    const cols = Math.floor(W / colW);
+    if (st.spalten.length !== cols) {
+      st.spalten = Array.from({ length: cols }, () => ({ y: Math.random() * H, v: (0.5 + Math.random()) * m }));
+    }
+    ctx.font = `${colW - 1}px monospace`;
+    ctx.textAlign = "center";
+    for (let i = 0; i < cols; i++) {
+      const c = st.spalten[i];
+      if (c.y < yBase) { c.y = H; continue; }
+      ctx.fillStyle = "rgba(255,255,255,0.7)";
+      ctx.fillText(String.fromCharCode(48 + Math.floor(Math.random() * 10)), i * colW + colW / 2, c.y);
+      c.y -= c.v * k;
+      if (c.y < yBase) c.y = H;
+    }
+  } else if (mode === 11) {
+    voll();
+    const sY = yBase + ((t * 30 * m) % Math.max(1, fillH));
+    const h = 4 * m;
+    const g = ctx.createLinearGradient(0, sY - h, 0, sY + h);
+    g.addColorStop(0, "rgba(255,255,255,0)");
+    g.addColorStop(0.5, "rgba(255,255,255,0.35)");
+    g.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = g; ctx.fillRect(0, sY - h, W, 2 * h);
+  } else if (mode === 12) {
+    const beat = (t % (Math.PI * 2)) / (Math.PI * 2);
+    let off = 0;
+    if (beat < 0.1) off = Math.sin(beat / 0.1 * Math.PI) * (H * 0.05);
+    else if (beat < 0.2) off = -Math.sin((beat - 0.1) / 0.1 * Math.PI) * (H * 0.03);
+    const hY = yBase + off;
+    ctx.fillStyle = verlauf(hY); ctx.fillRect(0, hY, W, H - hY);
+  }
+}
+
 /* ================================================================== *
  *  Karte
  * ================================================================== */
@@ -334,11 +506,16 @@ class LutarymEnergyFlowCard extends HTMLElement {
   /* -------------------- Lebenszyklus -------------------- */
 
   connectedCallback() {
+    if (this._built && this._beobachter) {
+      const svg = this.shadowRoot.querySelector("svg");
+      if (svg) this._beobachter.observe(svg);
+    }
     if (this._built && !this._animLoop) this._startAnimation();
     if (this._config && this._config.demo) this._demoStart();
   }
 
   disconnectedCallback() {
+    if (this._beobachter) this._beobachter.disconnect();
     if (this._animLoop) cancelAnimationFrame(this._animLoop);
     this._animLoop = null;
     this._demoStopp();
@@ -774,10 +951,25 @@ class LutarymEnergyFlowCard extends HTMLElement {
       <ha-card class="lef">
         <div class="lef-hint" id="hinweis" hidden></div>
         <div class="lef-demo" id="demo-hinweis" hidden></div>
-        <div class="lef-scene">${this._svg()}</div>
+        <div class="lef-scene">${this._svg()}
+          <div class="bat-ueber" id="bat-ueber" hidden>
+            <canvas id="bat-leinwand"></canvas>
+            <div class="bat-pct" id="bat-pct"></div>
+          </div>
+        </div>
       </ha-card>`;
     this.shadowRoot.replaceChildren(root);
     this._rahmenFuer = null;
+    this._saeuleZustand = null;
+    this._saeuleStand = null;
+    this._saeuleMass = null;
+    // Die Leinwand muss der Saeule folgen, wenn sich die Kartengroesse aendert.
+    if (this._beobachter) this._beobachter.disconnect();
+    if (window.ResizeObserver) {
+      this._beobachter = new ResizeObserver(() => this._saeuleLage());
+      const svg = this.shadowRoot.querySelector("svg");
+      if (svg) this._beobachter.observe(svg);
+    }
     this._klicks();
     this._startAnimation();
   }
@@ -785,6 +977,9 @@ class LutarymEnergyFlowCard extends HTMLElement {
   /** Klick auf eine Baugruppe oeffnet den Detaildialog von Home Assistant. */
   _klicks() {
     const sr = this.shadowRoot;
+    const ueber = sr.getElementById("bat-ueber");
+    const saeule = sr.getElementById("akku-saeule");
+    if (ueber && saeule) ueber.addEventListener("click", () => saeule.dispatchEvent(new Event("click")));
     sr.querySelectorAll("[data-entity]").forEach((el) => {
       el.addEventListener("click", () => {
         if (this._config.demo) return;
@@ -904,6 +1099,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
     return `
     <svg viewBox="0 0 ${breite} ${hoehe}" class="lef-svg" role="img" aria-label="Energy flow">
       ${this._defs()}
+      <g id="fluss-inhalt">
       ${this._leitung("pv_wr")}
       ${this._leitung("akku_wr")}
       ${this._leitung("wr_haus")}
@@ -925,6 +1121,13 @@ class LutarymEnergyFlowCard extends HTMLElement {
         entity: this._config.entities.home ? "home" : "",
         icon: ICON.haus,
         inhalt: `${this._bogen("seg-pv", FARBE.pv)}${this._bogen("seg-akku", FARBE.akku)}${this._bogen("seg-netz", FARBE.netzBezug)}${this._werte("haus")}` })}
+      </g>
+      ${this._zeigtSaeule() ? `
+      <g id="akku-saeule" class="saeule" data-entity="${this._config.entities.battery_soc ? "battery_soc" : "battery"}">
+        <rect id="saeule-pol" class="saeule-pol" x="0" y="0" width="0" height="0" rx="3"/>
+        <rect id="saeule-rahmen" class="saeule-rahmen" x="0" y="0" width="0" height="0" rx="10"/>
+        <rect id="saeule-innen" x="0" y="0" width="0" height="0" fill="none"/>
+      </g>` : ""}
     </svg>`;
   }
 
@@ -1093,6 +1296,14 @@ class LutarymEnergyFlowCard extends HTMLElement {
     const akkuRing = this._el("ring-akku");
     if (akkuRing) akkuRing.classList.remove("is-on");
     this._setPuls("akku-blitz", an(m.laden), 1.4);
+    // Akkusaeule
+    this._zeige("akku-saeule", m.hatAkku);
+    this._saeulePct = m.soc === null ? 0 : m.soc;
+    const pctEl = this._el("bat-pct");
+    if (pctEl) {
+      pctEl.textContent = m.soc === null ? "--" : `${Math.round(m.soc)} %`;
+      pctEl.hidden = c.battery_bar_percent === false;
+    }
 
     /* ---- Haus ---- */
     this._setText("haus-v", this._wText(m.haus));
@@ -1239,12 +1450,35 @@ class LutarymEnergyFlowCard extends HTMLElement {
     if (sichtbar === this._rahmenFuer) return;
     let box;
     try {
-      box = svg.getBBox();
+      const inhalt = this._el("fluss-inhalt");
+      box = inhalt ? inhalt.getBBox() : svg.getBBox();
     } catch (err) {
       return;
     }
     // Noch nicht gezeichnet, etwa in einem verborgenen Tab: spaeter erneut.
     if (!box || box.width < 10 || box.height < 10) return;
+
+    // Akkusaeule rechts daneben, von der Ober- bis zur Unterkante des Flusses.
+    const saeule = this._el("akku-saeule");
+    if (saeule && saeule.getAttribute("display") !== "none") {
+      const POL = 10;
+      const STRICH = 3;
+      const hoehe = box.height - POL;
+      const breite = Math.round(hoehe * 0.22);
+      const x = box.x + box.width + 26;
+      const y = box.y + POL;
+      const setze = (id, a) => {
+        const el = this._el(id);
+        if (el) Object.keys(a).forEach((k) => el.setAttribute(k, a[k].toFixed(1)));
+      };
+      setze("saeule-rahmen", { x, y, width: breite, height: hoehe });
+      setze("saeule-pol", { x: x + breite * 0.3, y: box.y, width: breite * 0.4, height: POL + 2 });
+      setze("saeule-innen", {
+        x: x + STRICH + 2, y: y + STRICH + 2,
+        width: breite - 2 * (STRICH + 2), height: hoehe - 2 * (STRICH + 2),
+      });
+      box = { x: box.x, y: box.y, width: box.width + 26 + breite, height: box.height };
+    }
     // Etwas Luft fuer den Leuchtschein um aktive Kreise.
     const luft = 8;
     svg.setAttribute("viewBox", [
@@ -1252,6 +1486,75 @@ class LutarymEnergyFlowCard extends HTMLElement {
       Math.ceil(box.width + 2 * luft), Math.ceil(box.height + 2 * luft),
     ].join(" "));
     this._rahmenFuer = sichtbar;
+    this._saeuleLage();
+  }
+
+  /** Ob die Akkusaeule gezeichnet wird. */
+  _zeigtSaeule() {
+    const c = this._config;
+    return c.battery_bar !== false && this._zeigtAkku();
+  }
+
+  /**
+   * Legt die Leinwand genau ueber den Innenraum der Saeule. Laeuft nach
+   * jeder Groessenaenderung der Karte, die Zeichnung skaliert ja mit.
+   */
+  _saeuleLage() {
+    const ueber = this._el("bat-ueber");
+    const innen = this._el("saeule-innen");
+    const szene = this.shadowRoot && this.shadowRoot.querySelector(".lef-scene");
+    const saeule = this._el("akku-saeule");
+    if (!ueber || !szene) return;
+    if (!innen || !saeule || saeule.getAttribute("display") === "none") {
+      ueber.hidden = true;
+      return;
+    }
+    const a = innen.getBoundingClientRect();
+    const b = szene.getBoundingClientRect();
+    if (a.width < 2 || a.height < 2) {
+      ueber.hidden = true;
+      return;
+    }
+    ueber.hidden = false;
+    Object.assign(ueber.style, {
+      left: `${a.left - b.left}px`, top: `${a.top - b.top}px`,
+      width: `${a.width}px`, height: `${a.height}px`,
+    });
+    const lw = this._el("bat-leinwand");
+    const dpr = window.devicePixelRatio || 1;
+    const w = Math.round(a.width * dpr);
+    const h = Math.round(a.height * dpr);
+    if (lw && (lw.width !== w || lw.height !== h)) {
+      lw.width = w;
+      lw.height = h;
+      this._saeuleStand = null;
+    }
+    this._saeuleMass = { w: a.width, h: a.height, dpr };
+    const pct = this._el("bat-pct");
+    if (pct) pct.style.fontSize = `${Math.max(10, a.width * 0.3 * this._fs()).toFixed(1)}px`;
+  }
+
+  /** Zeichnet die Fuellung der Akkusaeule fuer das aktuelle Bild. */
+  _saeuleZeichnen(dt) {
+    const lw = this._el("bat-leinwand");
+    const ueber = this._el("bat-ueber");
+    const mass = this._saeuleMass;
+    if (!lw || !ueber || ueber.hidden || !mass) return;
+    const c = this._config;
+    const animiert = c.animate !== false;
+    const mode = animiert ? clamp(parseInt(c.battery_bar_animation, 10) || 0, 0, SAEULE_STILE - 1) : 0;
+    const pct = clamp(this._saeulePct || 0, 0, 100);
+    // Ohne Bewegung nur neu zeichnen, wenn sich etwas geaendert hat.
+    const stand = `${mode}|${pct}|${lw.width}`;
+    if (mode === 0 && this._saeuleStand === stand) return;
+    this._saeuleStand = stand;
+    if (!this._saeuleZustand) this._saeuleZustand = { teile: [], spalten: [], anzeige: 0, t: 0 };
+    const st = this._saeuleZustand;
+    st.t += dt * 2.4;
+    const ctx = lw.getContext("2d");
+    ctx.setTransform(mass.dpr, 0, 0, mass.dpr, 0, 0);
+    ctx.clearRect(0, 0, mass.w, mass.h);
+    saeuleZeichnen(ctx, mass.w, mass.h, pct, st.t, mode, st, Math.min(6, dt * 60));
   }
 
   /* -------------------- Animation -------------------- */
@@ -1270,6 +1573,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
       const faktor = clamp(Number(this._config && this._config.animation_speed) || 1, 0.1, 5);
       this._animZeit += dt * faktor;
       if (this._config && this._config.animate) this._animiere(dt * faktor);
+      this._saeuleZeichnen(dt * faktor);
       this._animLoop = requestAnimationFrame(tick);
     };
     this._animLoop = requestAnimationFrame(tick);
@@ -1342,9 +1646,21 @@ class LutarymEnergyFlowCard extends HTMLElement {
         display: flex; flex-direction: column;
       }
       .lef-scene {
-        flex: 1 1 auto; min-height: 0;
+        flex: 1 1 auto; min-height: 0; position: relative;
         display: flex; align-items: center; justify-content: center;
       }
+      .saeule { cursor: pointer; }
+      .saeule-rahmen { fill: #111821; stroke: #C3D0E0; stroke-width: 3; }
+      .saeule-pol { fill: #C3D0E0; opacity: 0.6; }
+      .bat-ueber { position: absolute; overflow: hidden; border-radius: 5px; cursor: pointer; }
+      .bat-ueber[hidden] { display: none; }
+      .bat-ueber canvas { width: 100%; height: 100%; display: block; }
+      .bat-pct {
+        position: absolute; left: 0; right: 0; bottom: 8px; text-align: center;
+        font-weight: 700; color: #FFFFFF; text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+        font-family: ui-monospace, "SF Mono", Menlo, monospace; pointer-events: none;
+      }
+      .bat-pct[hidden] { display: none; }
       .lef-hint, .lef-demo {
         margin: 8px 8px 6px; padding: 10px 14px; border-radius: 10px; font-size: 14px;
         flex: 0 0 auto;
@@ -1452,6 +1768,11 @@ const EDITOR_TEXTE = {
     battery_soc: "Ladestand (%)",
     battery_capacity: "Maximale Kapazität (Entität, z.B. Fronius capacity_maximum)",
     battery_capacity_kwh: "oder fester Wert in kWh, falls keine Entität",
+    battery_bar: "Akkusäule rechts anzeigen",
+    battery_bar_animation: "Animation der Akkusäule",
+    battery_bar_percent: "Prozent in der Akkusäule anzeigen",
+    saeule: ["Statisch", "Wellen", "Pulsieren", "Blasen", "Glitzer", "Sanft auffüllend",
+      "Schimmern", "Blitz", "Regen", "Feuer", "Matrix", "Scanline", "Herzschlag"],
     battery_secondary: "Zusatzzeile (z.B. Temperatur)",
     name_battery: "Eigener Name",
     home: "Hausverbrauch (leer = wird berechnet)",
@@ -1517,6 +1838,11 @@ const EDITOR_TEXTE = {
     battery_soc: "State of charge (%)",
     battery_capacity: "Maximum capacity (entity, e.g. Fronius capacity_maximum)",
     battery_capacity_kwh: "or fixed value in kWh if no entity",
+    battery_bar: "Show battery bar on the right",
+    battery_bar_animation: "Battery bar animation",
+    battery_bar_percent: "Show percentage in battery bar",
+    saeule: ["Static", "Waves", "Pulse", "Bubbles", "Glitter", "Smooth fill",
+      "Shimmer", "Lightning", "Rain", "Fire", "Matrix", "Scanline", "Heartbeat"],
     battery_secondary: "Extra line (e.g. temperature)",
     name_battery: "Own name",
     home: "Home consumption (empty = calculated)",
@@ -1662,6 +1988,10 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
         { name: "battery_soc", ort: "e", selector: LEISTUNG },
         { name: "battery_capacity", ort: "e", selector: LEISTUNG },
         { name: "battery_capacity_kwh", selector: { number: { min: 0, max: 200, step: 0.1, mode: "box", unit_of_measurement: "kWh" } } },
+        { name: "battery_bar", selector: JA_NEIN },
+        { name: "battery_bar_animation", selector: { select: { mode: "dropdown",
+          options: EDITOR_TEXTE[sp].saeule.map((label, i) => ({ value: String(i), label })) } } },
+        { name: "battery_bar_percent", selector: JA_NEIN },
         { name: "battery_secondary", ort: "e", selector: BELIEBIG },
         { name: "name_battery", selector: TEXT },
       ] },
@@ -1699,6 +2029,8 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
       if (f.ort === "e") v = c.entities[f.name];
       else if (f.ort === "c") v = (c.consumers[f.idx] || {})[f.feld];
       else v = c[f.name] !== undefined ? c[f.name] : DEFAULT_CONFIG[f.name];
+      // Auswahllisten arbeiten mit Text, gespeichert wird die Zahl.
+      if (f.name === "battery_bar_animation" && v !== undefined) v = String(v);
       if (v !== undefined && v !== "") d[f.name] = v;
     });
     if (abschnitt.titel === "allgemein" && d.language === undefined) d.language = "auto";
@@ -1749,7 +2081,8 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
       consumers: (this._config.consumers || []).map((x) => ({ ...x })),
     };
     ab.felder.forEach((f) => {
-      const v = werte[f.name];
+      let v = werte[f.name];
+      if (f.name === "battery_bar_animation" && v !== undefined && v !== "") v = Number(v);
       const leer = v === undefined || v === null || v === "";
       if (f.ort === "e") {
         if (leer) delete c.entities[f.name];
