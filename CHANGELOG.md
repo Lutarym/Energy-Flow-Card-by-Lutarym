@@ -4,6 +4,11 @@
 
 ## English
 
+### v1.0.1
+
+- Fix: the line to the further consumers now only runs up to the last consumer that draws power
+- Fix: values below `min_flow` no longer add up to an active line
+
 ### v1.0.0
 
 First release.
@@ -15,6 +20,11 @@ First release.
 - Languages: English, German, French and Japanese
 
 ## Deutsch
+
+### v1.0.1
+
+- Behoben: Die Leitung zu den weiteren Verbrauchern läuft nur noch bis zum letzten Verbraucher, der Strom bezieht
+- Behoben: Werte unter `min_flow` ergeben zusammen keine aktive Leitung mehr
 
 ### v1.0.0
 
@@ -28,6 +38,11 @@ Erste Veröffentlichung.
 
 ## Français
 
+### v1.0.1
+
+- Corrigé : la ligne vers les autres consommateurs ne va plus que jusqu'au dernier consommateur qui consomme du courant
+- Corrigé : les valeurs sous `min_flow` ne s'additionnent plus en une ligne active
+
 ### v1.0.0
 
 Première version.
@@ -39,6 +54,11 @@ Première version.
 - Langues : anglais, allemand, français et japonais
 
 ## 日本語
+
+### v1.0.1
+
+- 修正：その他の機器へのラインは、電力を使用している最後の機器までのみ流れるようになりました
+- 修正：`min_flow` 未満の値が合算されてラインが動作することはなくなりました
 
 ### v1.0.0
 
