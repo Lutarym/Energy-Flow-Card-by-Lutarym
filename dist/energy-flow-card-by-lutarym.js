@@ -116,10 +116,15 @@ const LEITUNGEN = {
   bus_ex: "M310 260 V 385",
 };
 
-/** Schiene zu den weiteren Verbrauchern: links ein Abzweig, rechts der Rest. */
-function exSchiene(seite, anzahl) {
+/**
+ * Schiene zu den weiteren Verbrauchern: links ein Abzweig zum ersten,
+ * rechts ein eigenes Stueck bis zu jedem weiteren Verbraucher. So laeuft
+ * die Schiene nur bis zum letzten Verbraucher, der gerade Strom bezieht.
+ */
+function exSchiene(seite) {
   if (seite === "l") return `M310 ${G.EX_SCHIENE} H ${G.EX_X[0]}`;
-  return `M310 ${G.EX_SCHIENE} H ${G.EX_X[Math.max(1, anzahl - 1)]}`;
+  const von = seite === 1 ? 310 : G.EX_X[seite - 1];
+  return `M${von} ${G.EX_SCHIENE} H ${G.EX_X[seite]}`;
 }
 function exAbzweig(i) {
   return `M${G.EX_X[i]} ${G.EX_SCHIENE} V ${G.EX_Y}`;
@@ -855,16 +860,24 @@ class LutarymEnergyFlowCard extends HTMLElement {
 
     const soc = hatAkku ? this._zahl("battery_soc") : null;
 
+    // Fuer alles Abgeleitete gilt die Schwelle min_flow: Kleinere Werte
+    // zaehlen als Stillstand, damit sich Kleinstwerte nicht zu einem
+    // scheinbar aktiven Fluss aufsummieren.
+    const schwelle = Number(c.min_flow) || 0;
+    const ab = (w) => (w !== null && w > schwelle ? w : 0);
+    const gPv = ab(pv);
+    const gBezug = ab(bezug);
+    const gEinsp = ab(einspeisung);
+    const gLaden = ab(laden);
+    const gEntladen = ab(entladen);
+
     // Hausverbrauch: eigene Entitaet gewinnt, sonst aus der Bilanz.
     let haus = null;
     if (!demo && e.home) {
       const h = this._leistung("home");
       haus = h === null ? null : Math.max(0, h);
     } else if (pv !== null || bezug !== null || entladen !== null) {
-      haus = Math.max(
-        0,
-        (pv || 0) + (bezug || 0) + (entladen || 0) - (einspeisung || 0) - (laden || 0)
-      );
+      haus = Math.max(0, gPv + gBezug + gEntladen - gEinsp - gLaden);
     }
 
     const wp = demo || e.heatpump ? this._leistung("heatpump") : null;
@@ -874,7 +887,9 @@ class LutarymEnergyFlowCard extends HTMLElement {
       w: this._leistungVon(v.id),
     }));
 
-    const fluss = verteile({ pv, bezug, einspeisung, laden, entladen, haus });
+    const fluss = verteile({
+      pv: gPv, bezug: gBezug, einspeisung: gEinsp, laden: gLaden, entladen: gEntladen, haus: ab(haus),
+    });
 
     // Wechselrichter: AC-Leistung ins Haus. Eigene Entitaet gewinnt,
     // sonst PV plus Entladen minus Laden. Negativ heisst: das Netz laedt
@@ -883,8 +898,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
     let wr = null;
     if (hatWr) {
       const eigen = !demo && e.inverter ? this._leistung("inverter") : null;
-      wr = eigen !== null ? eigen
-        : (pv || 0) + (entladen || 0) - (laden || 0);
+      wr = eigen !== null ? eigen : gPv + gEntladen - gLaden;
     }
 
     return {
@@ -1225,8 +1239,8 @@ class LutarymEnergyFlowCard extends HTMLElement {
       ${this._leitung("bus_wp")}
       ${this._leitung("bus_wb")}
       ${ex.length ? this._leitung("bus_ex") : ""}
-      ${ex.length ? this._leitung("ex_l", exSchiene("l", ex.length)) : ""}
-      ${ex.length > 1 ? this._leitung("ex_r", exSchiene("r", ex.length)) : ""}
+      ${ex.length ? this._leitung("ex_l", exSchiene("l")) : ""}
+      ${ex.slice(1).map((_, k) => this._leitung(`ex_r${k + 1}`, exSchiene(k + 1))).join("")}
       ${ex.map((_, i) => this._leitung(`exa${i}`, exAbzweig(i))).join("")}
       ${ex.length ? `<circle cx="310" cy="${G.EX_SCHIENE}" r="6" class="knotenpunkt"/>` : ""}
       ${this._knoten({ id: "wp", pos: G.WP, label: this._name("heatpump", "wp"), entity: "heatpump",
@@ -1546,12 +1560,13 @@ class LutarymEnergyFlowCard extends HTMLElement {
 
       // Weitere Verbraucher
       let exSumme = 0;
-      let rechtsEx = 0;
+      // rechtsAb[k]: Leistung aller aktiven Verbraucher ab Platz k.
+      const rechtsAb = m.verbraucher.map(() => 0);
       m.verbraucher.forEach((v, i) => {
         const aktiv = an(v.w);
         if (aktiv) {
           exSumme += v.w;
-          if (i > 0) rechtsEx += v.w;
+          for (let k = 1; k <= i; k++) rechtsAb[k] += v.w;
         }
         this._setLeitung(`exa${i}`, v.w, hausMix);
         this._setText(`ex${i}-v`, this._verbraucherText(v.id, v.w, aktiv));
@@ -1560,7 +1575,9 @@ class LutarymEnergyFlowCard extends HTMLElement {
       });
       this._setLeitung("bus_ex", exSumme, hausMix);
       this._setLeitung("ex_l", m.verbraucher[0] ? m.verbraucher[0].w : null, hausMix);
-      this._setLeitung("ex_r", rechtsEx, hausMix);
+      for (let k = 1; k < m.verbraucher.length; k++) {
+        this._setLeitung(`ex_r${k}`, rechtsAb[k], hausMix);
+      }
 
     }
 
