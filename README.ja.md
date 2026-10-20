@@ -74,7 +74,7 @@ entities:
 
 | オプション | 既定値 | 内容 |
 |---|---|---|
-| `layout` | `quer` | `quer` 横長、`hoch` 縦長 |
+| `layout` | `quer` | `quer` 横長、`hoch` 縦長、`klassisch` バージョン 4.9 までの横長（最大 2 回路、追加熱源なし） |
 | `hk_count` | `2` | 暖房回路の数、1 から 4。回路 3 と 4 は独自エンティティが必要（Aquarea が制御するのは 2 ゾーンのみ） |
 | `fan_count` | `2` | ファンの数、1 または 2 |
 | `language` | `auto` | `auto`、`de`、`en`、`fr`、`ja` |
@@ -103,6 +103,9 @@ entities:
 | `animate` | `true` | アニメーション：`true` オン、`false` オフ、`auto` 端末の設定（視差効果を減らす）に従う |
 | `hk1_style` から `hk4_style` | `platte` | 暖房回路の図：`platte` パネルラジエーター、`glieder` セクショナルラジエーター、`fbh` 床暖房 |
 | `extra_heat` | `aus` | バッファーの追加熱源：`aus`（オフ）、`kamin`（薪ストーブ）、`solar`（太陽熱）、`beide`（両方）。バッファーがある場合のみ |
+| `kamin_fire_temp` | `30` | 薪ストーブ温度（°C）がこの値以上になると炎を表示 |
+| `solar_sun_temp` | `30` | 集熱器温度（°C）がこの値以上になると太陽を表示 |
+| `solar_style` | `strahlen` | 太陽熱の表示：`strahlen`（光線とセルの波）、`funkeln`（加熱ときらめき）、`roehren`（真空管集熱器） |
 | `demo` | `false` | 試用のための仮の値 |
 
 ### エンティティ
@@ -175,8 +178,8 @@ entities:
 | `hk3_water, hk4_water` | 回路3、4 水温 | 独自エンティティ、°C |
 | `hk3_pump, hk4_pump` | 回路3、4 ポンプ運転中 | 独自のスイッチまたはセンサー |
 | `hk3_switch, hk4_switch` | 回路3、4 入切 | 独自スイッチ、任意 |
-| `kamin_temp` | 薪ストーブ温度 | 独自エンティティ、°C |
-| `kamin_pump` | 薪ストーブ ポンプ運転中 | 独自のスイッチまたはセンサー |
+| `kamin_temp` | 薪ストーブ温度 | 独自エンティティ、°C。薪ストーブのみ：TOP47 |
+| `kamin_pump` | 薪ストーブ ポンプ運転中 | 独自のスイッチまたはセンサー。薪ストーブのみ：OPT5 |
 | `solar_temp` | 太陽熱温度 | TOP47 |
 | `solar_pump` | 太陽熱ポンプ運転中 | OPT5 |
 | **給湯** | | |

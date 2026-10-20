@@ -150,7 +150,8 @@ export const TEXTE = {
   m_p_zurueck: { de: "Anpassung entfernt, das eingebaute Profil gilt wieder.", en: "Customisation removed, the built-in profile applies again.", fr: "Modification supprimée, le profil intégré s'applique de nouveau.", ja: "カスタムを削除し、内蔵プロファイルに戻しました。" },
   e_profil_h: { de: "legt fest, nach welchem Namensschema gesucht wird", en: "defines the entity naming scheme to search for", fr: "définit le schéma de nommage recherché", ja: "検索するエンティティ名の規則" },
   e_anordnung: { de: "Anordnung", en: "Layout", fr: "Disposition", ja: "レイアウト" },
-  e_anordnung_h: { de: "quer oder hochkant", en: "landscape or portrait", fr: "paysage ou portrait", ja: "横長または縦長" },
+  e_anordnung_h: { de: "quer, hochkant oder klassisch wie bis Version 4.9 (2 Heizkreise, ohne Zusatzwärme)", en: "landscape, portrait or classic as up to version 4.9 (2 circuits, no additional heat)", fr: "paysage, portrait ou classique comme jusqu'à la version 4.9 (2 circuits, sans chaleur d'appoint)", ja: "横長、縦長、またはバージョン 4.9 までのクラシック（2 回路、追加熱源なし）" },
+  e_klassisch: { de: "Querformat klassisch", en: "Landscape classic", fr: "Paysage classique", ja: "横長（クラシック）" },
   e_breite: { de: "Breite", en: "Width", fr: "Largeur", ja: "幅" },
   e_hoehe: { de: "Höhe", en: "Height", fr: "Hauteur", ja: "高さ" },
   e_pixel_auto: { de: "Pixel, 0 heißt automatisch", en: "pixels, 0 means automatic", fr: "pixels, 0 = automatique", ja: "ピクセル、0で自動" },
@@ -353,11 +354,22 @@ export const TEXTE = {
   grp_13: { de: "Zusatzwärme", en: "Additional heat", fr: "Chaleur d'appoint", ja: "追加熱源" },
   hnw_9: { de: "eigene Entität, °C", en: "own entity, °C", fr: "entité propre, °C", ja: "独自エンティティ、°C" },
   hnw_10: { de: "eigener Schalter oder Sensor", en: "own switch or sensor", fr: "interrupteur ou capteur propre", ja: "独自のスイッチまたはセンサー" },
+  hnw_11: { de: "eigene Entität, °C; Kamin allein: TOP47", en: "own entity, °C; stove only: TOP47", fr: "entité propre, °C ; poêle seul : TOP47", ja: "独自エンティティ、°C。薪ストーブのみ：TOP47" },
+  hnw_12: { de: "eigener Schalter oder Sensor; Kamin allein: OPT5", en: "own switch or sensor; stove only: OPT5", fr: "interrupteur ou capteur propre ; poêle seul : OPT5", ja: "独自のスイッチまたはセンサー。薪ストーブのみ：OPT5" },
   kamin: { de: "Kamin", en: "Stove", fr: "Poêle", ja: "薪ストーブ" },
   solarthermie: { de: "Solarthermie", en: "Solar thermal", fr: "Solaire thermique", ja: "太陽熱" },
   pumpe_wert: { de: "Pumpe {v}", en: "Pump {v}", fr: "Pompe {v}", ja: "ポンプ {v}" },
   e_zusatz: { de: "Zusatzwärme am Puffer", en: "Additional heat at the buffer", fr: "Chaleur d'appoint au ballon tampon", ja: "バッファーの追加熱源" },
   e_zusatz_h: { de: "nur mit Heizungspuffer", en: "only with a heating buffer", fr: "uniquement avec ballon tampon", ja: "バッファーがある場合のみ" },
+  e_feuer_ab: { de: "Feuer im Kamin ab", en: "Fire in the stove from", fr: "Feu dans le poêle à partir de", ja: "薪ストーブの炎の表示温度" },
+  e_feuer_ab_h: { de: "°C Kamintemperatur, Standard 30", en: "°C stove temperature, default 30", fr: "°C température du poêle, 30 par défaut", ja: "薪ストーブ温度 °C、既定 30" },
+  e_sonne_ab: { de: "Sonne über Solarthermie ab", en: "Sun above solar thermal from", fr: "Soleil sur le solaire thermique à partir de", ja: "太陽熱の太陽表示温度" },
+  e_sonne_ab_h: { de: "°C Kollektortemperatur, Standard 30", en: "°C collector temperature, default 30", fr: "°C température du capteur, 30 par défaut", ja: "集熱器温度 °C、既定 30" },
+  e_solarstil: { de: "Solarthermie Darstellung", en: "Solar thermal style", fr: "Style du solaire thermique", ja: "太陽熱の表示" },
+  e_solarstil_h: { de: "Bild und Animation, wenn die Sonne scheint", en: "picture and animation while the sun shines", fr: "image et animation quand le soleil brille", ja: "太陽が出ているときの図とアニメーション" },
+  o_solar_strahlen: { de: "Lichtstrahlen und Zellenwelle", en: "Light rays and cell wave", fr: "Rayons et vague de cellules", ja: "光線とセルの波" },
+  o_solar_funkeln: { de: "Aufwärmen und Funkeln", en: "Warming and sparkle", fr: "Réchauffement et scintillement", ja: "加熱ときらめき" },
+  o_solar_roehren: { de: "Röhrenkollektor", en: "Tube collector", fr: "Capteur à tubes", ja: "真空管集熱器" },
   e_zusatz_beide: { de: "Kamin und Solarthermie", en: "Stove and solar thermal", fr: "Poêle et solaire thermique", ja: "薪ストーブと太陽熱" },
   e_3hk: { de: "3 Heizkreise", en: "3 circuits", fr: "3 circuits", ja: "3回路" },
   e_4hk: { de: "4 Heizkreise", en: "4 circuits", fr: "4 circuits", ja: "4回路" },
@@ -485,6 +497,12 @@ export const TEXTE = {
   w_22: { de: "Pumpe HK2", en: "Pump circuit 2", fr: "Pompe circuit 2", ja: "回路2ポンプ" },
   w_23: { de: "Heizstab Heizung", en: "Heater, heating", fr: "Appoint chauffage", ja: "暖房ヒーター" },
   w_43: { de: "Heizstab läuft", en: "Heater running", fr: "Appoint en marche", ja: "ヒーター運転中" },
+  w_44: { de: "Pumpe Kamin", en: "Stove pump", fr: "Pompe poêle", ja: "薪ストーブポンプ" },
+  w_45: { de: "Pumpe Solarthermie", en: "Solar thermal pump", fr: "Pompe solaire thermique", ja: "太陽熱ポンプ" },
+  w_46: { de: "Pumpe HK3", en: "Pump circuit 3", fr: "Pompe circuit 3", ja: "回路3ポンプ" },
+  w_47: { de: "Pumpe HK4", en: "Pump circuit 4", fr: "Pompe circuit 4", ja: "回路4ポンプ" },
+  w_48: { de: "HK3 Wasser", en: "Circuit 3 water", fr: "Circuit 3 eau", ja: "回路3 水温" },
+  w_49: { de: "HK4 Wasser", en: "Circuit 4 water", fr: "Circuit 4 eau", ja: "回路4 水温" },
   w_24: { de: "Heizstab Warmwasser", en: "Heater, hot water", fr: "Appoint eau chaude", ja: "給湯ヒーター" },
   w_25: { de: "Abtauung", en: "Defrost", fr: "Dégivrage", ja: "除霜" },
   w_26: { de: "Zirkulation Status", en: "Circulation", fr: "Circulation", ja: "循環" },
@@ -536,7 +554,7 @@ export const TEXTE = {
 /** Zuordnung deutscher Gruppen und Hinweise zu Sprachschluesseln. */
 export const GRUPPEN_SCHLUESSEL = { "Außenfühler": "grp_0", "Außengerät": "grp_1", "Heizkreis 1": "grp_2", "Heizkreis 2": "grp_3", "Heizkurve": "grp_4", "Heizungspuffer": "grp_5", "Primärkreis": "grp_6", "SG Ready": "grp_7", "Steuerung": "grp_8", "Warmwasser": "grp_9", "Erweiterte Einstellungen": "grp_10", "Heizkreis 3": "grp_11", "Heizkreis 4": "grp_12", "Zusatzwärme": "grp_13" };
 
-export const HINWEIS_SCHLUESSEL = { "gilt für beide": "hnw_0", "eigener Schalter, optional": "hnw_1", "Shelly, Relais oder Eingang": "hnw_2", "eigene Entität, Watt": "hnw_3", "Soll Vorlauf": "hnw_4", "Shelly oder eigener Schalter": "hnw_5", "Switch zum Ein/Ausschalten der Zirkulation": "hnw_6", "SetHeatpump oder TOP0": "hnw_7", "Quelle in der Integration unter COP Quelle wählbar": "hnw_8", "eigene Entität, °C": "hnw_9", "eigener Schalter oder Sensor": "hnw_10" };
+export const HINWEIS_SCHLUESSEL = { "gilt für beide": "hnw_0", "eigener Schalter, optional": "hnw_1", "Shelly, Relais oder Eingang": "hnw_2", "eigene Entität, Watt": "hnw_3", "Soll Vorlauf": "hnw_4", "Shelly oder eigener Schalter": "hnw_5", "Switch zum Ein/Ausschalten der Zirkulation": "hnw_6", "SetHeatpump oder TOP0": "hnw_7", "Quelle in der Integration unter COP Quelle wählbar": "hnw_8", "eigene Entität, °C": "hnw_9", "eigener Schalter oder Sensor": "hnw_10", "eigene Entität, °C; Kamin allein: TOP47": "hnw_11", "eigener Schalter oder Sensor; Kamin allein: OPT5": "hnw_12" };
 
 /** Setzt Werte in Platzhalter wie {n} ein. */
 export function tf(text, werte) {
@@ -546,7 +564,7 @@ export function tf(text, werte) {
 }
 
 /** Zuordnung deutscher Auswahl- und Zustandswerte zu Sprachschluesseln. */
-export const WERT_SCHLUESSEL = { "Wärmepumpe": "w_20", "Pumpe HK1": "w_21", "Pumpe HK2": "w_22", "Heizstab Heizung": "w_23", "Heizstab Warmwasser": "w_24", "Heizstab läuft": "w_43", "Abtauung": "w_25", "Zirkulation Status": "w_26", "Aufheizen": "w_27", "Legionellenschutz": "w_28", "PV Leistung": "w_29", "Außen": "w_30", "Vorlauf": "w_31", "Rücklauf": "w_32", "Puffer": "w_33", "HK1 Wasser": "w_34", "HK2 Wasser": "w_35", "Verdichter": "w_36", "Durchfluss": "w_37", "Panasonic Aquarea, HeishaMon über MQTT-Namensschema": "w_38", "Vaillant, in Vorbereitung": "w_39", "Bosch, in Vorbereitung": "w_40", "Viessmann, in Vorbereitung": "w_41", "Stiebel Eltron, in Vorbereitung": "w_42", "Nur Heizen": "w_0", "Nur Kühlen": "w_1", "Automatik Heizen": "w_2", "Nur Warmwasser": "w_3", "Heizen und Warmwasser": "w_4", "Kühlen und Warmwasser": "w_5", "Automatik Heizen und Warmwasser": "w_6", "Automatik Kühlen": "w_7", "Automatik Kühlen und Warmwasser": "w_8", "Aus": "w_9", "Stufe 1": "w_10", "Stufe 2": "w_11", "Stufe 3": "w_12", "30 Minuten": "w_13", "60 Minuten": "w_14", "90 Minuten": "w_15", "Heizung": "w_16", "Warmwasser": "w_17", "läuft": "w_18", "aus": "w_19" };
+export const WERT_SCHLUESSEL = { "Wärmepumpe": "w_20", "Pumpe HK1": "w_21", "Pumpe HK2": "w_22", "Heizstab Heizung": "w_23", "Heizstab Warmwasser": "w_24", "Heizstab läuft": "w_43", "Pumpe Kamin": "w_44", "Pumpe Solarthermie": "w_45", "Pumpe HK3": "w_46", "Pumpe HK4": "w_47", "HK3 Wasser": "w_48", "HK4 Wasser": "w_49", "Kamin": "kamin", "Solarthermie": "solarthermie", "Abtauung": "w_25", "Zirkulation Status": "w_26", "Aufheizen": "w_27", "Legionellenschutz": "w_28", "PV Leistung": "w_29", "Außen": "w_30", "Vorlauf": "w_31", "Rücklauf": "w_32", "Puffer": "w_33", "HK1 Wasser": "w_34", "HK2 Wasser": "w_35", "Verdichter": "w_36", "Durchfluss": "w_37", "Panasonic Aquarea, HeishaMon über MQTT-Namensschema": "w_38", "Vaillant, in Vorbereitung": "w_39", "Bosch, in Vorbereitung": "w_40", "Viessmann, in Vorbereitung": "w_41", "Stiebel Eltron, in Vorbereitung": "w_42", "Nur Heizen": "w_0", "Nur Kühlen": "w_1", "Automatik Heizen": "w_2", "Nur Warmwasser": "w_3", "Heizen und Warmwasser": "w_4", "Kühlen und Warmwasser": "w_5", "Automatik Heizen und Warmwasser": "w_6", "Automatik Kühlen": "w_7", "Automatik Kühlen und Warmwasser": "w_8", "Aus": "w_9", "Stufe 1": "w_10", "Stufe 2": "w_11", "Stufe 3": "w_12", "30 Minuten": "w_13", "60 Minuten": "w_14", "90 Minuten": "w_15", "Heizung": "w_16", "Warmwasser": "w_17", "läuft": "w_18", "aus": "w_19" };
 
 /** Auswahl- oder Zustandswert in der gewuenschten Sprache. */
 export function wertText(wert, sprache) {

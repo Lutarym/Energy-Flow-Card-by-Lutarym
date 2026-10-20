@@ -13,7 +13,9 @@ export const grafikQuerKarte = {
    * derselben Zeichnung, nur um 90 Grad gedreht.
    */
   _svg() {
-    return this._config.layout === "hoch" ? this._svgHoch() : this._svgQuer();
+    if (this._config.layout === "hoch") return this._svgHoch();
+    if (this._config.layout === "klassisch") return this._svgQuerKlassisch();
+    return this._svgQuer();
   },
 
   /** Farbverlaeufe und Filter, von beiden Anordnungen genutzt. */
@@ -108,6 +110,10 @@ export const grafikQuerKarte = {
     const B = L.TANK_BOTTOM;
     const M = this._querMasse();
     const { XW, XB, ZIRK_X } = M;
+    // Primaerpumpe auf dem gemeinsamen Ruecklauf, zwischen dem Schild
+    // "Ruecklauf" und dem Abzweig zum Warmwasserspeicher. So fliesst
+    // jeder Ruecklauf, aus Speicher und Puffer, durch die Pumpe.
+    const PUMP_X = Math.round((450 + XW) / 2);
     const zone = this._heizkreisZone(M);
     // Ende von Vor- und Ruecklauf des Primaerkreises: am Puffer oder,
     // ohne Puffer, an den Sammelleitungen der Heizkreise.
@@ -235,10 +241,10 @@ ${this._defs()}
 
       <!-- Primärpumpe -->
       <g>
-        <text class="cap-s" x="690" y="662" text-anchor="middle">${this._t("pumpe")}</text>
-        <text class="value-s" id="pump-v" x="690" y="749" text-anchor="middle">--</text>
-        <text class="value-s" id="flow-v" x="690" y="769" text-anchor="middle">--</text>
-        <g transform="translate(690 ${R})">
+        <text class="cap-s" x="${PUMP_X}" y="662" text-anchor="middle">${this._t("pumpe")}</text>
+        <text class="value-s" id="pump-v" x="${PUMP_X}" y="749" text-anchor="middle">--</text>
+        <text class="value-s" id="flow-v" x="${PUMP_X}" y="769" text-anchor="middle">--</text>
+        <g transform="translate(${PUMP_X} ${R})">
           <circle r="26" fill="#0D1219" stroke="#33415A" stroke-width="2"/>
           <g class="rotor" id="pump-rotor">
             <path id="pump-blade" d="M0 -15 L5 -4 L16 0 L5 4 L0 15 L-5 4 L-16 0 L-5 -4 Z" fill="#55637A"/>
@@ -261,7 +267,8 @@ ${this._defs()}
             <circle r="3" fill="#0D1219"/>
           </g>
         </g>
-        <text class="cap-s" id="zirk-name" x="${XW + 100}" y="280" text-anchor="start">${this._t("zirkulation")}</text>
+        <text class="cap-s" id="zirk-name" x="${ZIRK_X - 26}" y="475" text-anchor="middle"
+              dominant-baseline="middle" transform="rotate(-90 ${ZIRK_X - 26} 475)">${this._t("zirkulation")}</text>
         <text class="value-s" id="zirk-v" x="${ZIRK_X}" y="318" text-anchor="middle" opacity="0">--</text>
       </g>
 
@@ -389,34 +396,37 @@ ${this._defs()}
 
   /** SG Ready, PV, Leistung und Zaehler in der Spalte neben der Waermepumpe. */
   _kennzahlenQuer(F) {
+    // Mitte zwischen rechter Kante der Waermepumpe und linker Kante des
+    // Warmwasserspeichers.
+    const MX = (340 + this._querMasse().XW - 95) / 2;
     return `
       <g id="kennzahlen">
       <g id="sg-group" opacity="0">
-        <text class="sg-label" x="${L.X_COL}" y="${F + 60}" text-anchor="middle">SG Ready</text>
-        <g transform="translate(${L.X_COL} ${F + 90})">
+        <text class="sg-label" x="${MX}" y="${F + 60}" text-anchor="middle">SG Ready</text>
+        <g transform="translate(${MX} ${F + 90})">
           <rect x="-68" y="0" width="32" height="11" rx="5.5" id="sg-seg-1" fill="#3A4658"/>
           <rect x="-34" y="0" width="32" height="11" rx="5.5" id="sg-seg-2" fill="#3A4658"/>
           <rect x="2" y="0" width="32" height="11" rx="5.5" id="sg-seg-3" fill="#3A4658"/>
           <rect x="36" y="0" width="32" height="11" rx="5.5" id="sg-seg-4" fill="#3A4658"/>
         </g>
-        <text class="sg-value" id="sg-text" x="${L.X_COL}" y="${F + 130}"
+        <text class="sg-value" id="sg-text" x="${MX}" y="${F + 130}"
               text-anchor="middle">--</text>
-        <line x1="380" y1="${F + 150}" x2="510" y2="${F + 150}" stroke="#55657F" stroke-width="1"/>
+        <line x1="${MX - 65}" y1="${F + 150}" x2="${MX + 65}" y2="${F + 150}" stroke="#55657F" stroke-width="1"/>
       </g>
       <g id="pv-group" opacity="0">
-        <text class="sg-label" id="pv-label" x="${L.X_COL}" y="${F + 190}" text-anchor="middle">${this._t("pv_ueberschuss")}</text>
-        <text class="pv-value" id="pv-v" x="${L.X_COL}" y="${F + 228}"
+        <text class="sg-label" id="pv-label" x="${MX}" y="${F + 190}" text-anchor="middle">${this._t("pv_ueberschuss")}</text>
+        <text class="pv-value" id="pv-v" x="${MX}" y="${F + 228}"
               text-anchor="middle">--</text>
-        <line x1="380" y1="${F + 245}" x2="510" y2="${F + 245}" stroke="#55657F" stroke-width="1"/>
+        <line x1="${MX - 65}" y1="${F + 245}" x2="${MX + 65}" y2="${F + 245}" stroke="#55657F" stroke-width="1"/>
       </g>
       <g id="verbrauch-group" opacity="0">
-        <text class="sg-label" x="${L.X_COL}" y="${F + 285}" text-anchor="middle">${this._t("leistung")}</text>
-        <text class="verbrauch-v" id="power-now-v" x="${L.X_COL}" y="${F + 323}"
+        <text class="sg-label" x="${MX}" y="${F + 285}" text-anchor="middle">${this._t("leistung")}</text>
+        <text class="verbrauch-v" id="power-now-v" x="${MX}" y="${F + 323}"
               text-anchor="middle">--</text>
-        <line x1="380" y1="${F + 340}" x2="510" y2="${F + 340}" stroke="#55657F" stroke-width="1"/>
-        <text class="sg-label" id="energy-label" x="${L.X_COL}" y="${F + 380}"
+        <line x1="${MX - 65}" y1="${F + 340}" x2="${MX + 65}" y2="${F + 340}" stroke="#55657F" stroke-width="1"/>
+        <text class="sg-label" id="energy-label" x="${MX}" y="${F + 380}"
               text-anchor="middle">--</text>
-        <text class="unit-value" id="energy-today-v" x="${L.X_COL}" y="${F + 420}"
+        <text class="unit-value" id="energy-today-v" x="${MX}" y="${F + 420}"
               text-anchor="middle">--</text>
       </g>
       </g>`;
@@ -445,6 +455,12 @@ ${this._defs()}
     const F = L.FLOW_Y;
     const R = L.RET_Y;
     let kreise = "";
+    // Leitungen und Laufpunkte getrennt sammeln. Die Zuleitungen der
+    // Heizkreise teilen sich Abschnitte. Erst alle Rohre, dann alle
+    // Laufpunkte, sonst verdeckt das Rohr eines spaeteren Kreises die
+    // Laufpunkte eines frueheren.
+    let leitungen = "";
+    let punkte = "";
     const aeste = [];
     const ruecks = [];
     for (let i = 0; i < n; i++) {
@@ -462,15 +478,23 @@ ${this._defs()}
       aeste.push(ast);
       ruecks.push(unten + 14);
       const zu = `M${vorl} ${ast} H ${dx} V ${top}`;
-      const ab = `M${bx} ${unten} V ${unten + 14} H ${rueck}`;
+      // Ruecklauf der oberen Reihe kreuzt bei zwei Reihen die senkrechte
+      // Vorlauf-Sammelleitung. Dort springt er mit einem kleinen Bogen
+      // darueber, damit keine Verbindung vorgetaeuscht wird.
+      const kreuzt = zeilen > 1 && ze === 0;
+      const ab = kreuzt
+        ? `M${bx} ${unten} V ${unten + 14} H ${vorl + 7} A 7 7 0 0 0 ${vorl - 7} ${unten + 14} H ${rueck}`
+        : `M${bx} ${unten} V ${unten + 14} H ${rueck}`;
       const tx = (a + b) / 2;
-      kreise += `
-      <g class="circuit" id="hk${nr}-group">
+      leitungen += `
         <path class="pipe-shell duenn" d="${zu} ${ab}"/>
         <path class="pipe duenn" id="pipe-hk${nr}-in" d="${zu}"/>
-        <path class="pipe duenn" id="pipe-hk${nr}-out" d="${ab}"/>
+        <path class="pipe duenn" id="pipe-hk${nr}-out" d="${ab}"/>`;
+      punkte += `
         <path class="flowdots duenn" id="dots-hk${nr}" d="${zu}"/>
-        <path class="flowdots duenn" id="dots-hk${nr}b" d="${ab}"/>
+        <path class="flowdots duenn" id="dots-hk${nr}b" d="${ab}"/>`;
+      kreise += `
+      <g class="circuit" id="hk${nr}-group">
         <g transform="translate(${dx} ${ast + 20})">
           <circle r="15" fill="#0D1219" stroke="#33415A" stroke-width="2"/>
           <g class="rotor" id="hk${nr}-rotor">
@@ -493,6 +517,13 @@ ${this._defs()}
       </g>`;
     }
     const letzterAst = Math.max(...aeste);
+    // Laufpunkte der Sammelleitungen in Abschnitten: der gemeinsame Teil
+    // laeuft, sobald ein Kreis laeuft, der Teil zur zweiten Reihe nur,
+    // wenn HK3 oder HK4 laufen, der Ruecklauf jeder Reihe nur mit ihren
+    // Kreisen.
+    const r1 = ruecks[0];
+    const r2 = zeilen > 1 ? ruecks[spalten] : null;
+    let punkteSammel;
     let vlPfad;
     let rlPfad;
     if (M.puffer) {
@@ -501,18 +532,33 @@ ${this._defs()}
       vlPfad = `M${M.BR} ${VLY} H ${vorl} V ${letzterAst}`;
       const teile = ruecks.map((y) => `M${rueck} ${y} V ${RLY}`);
       rlPfad = `${[...new Set(teile)].join(" ")} M${rueck} ${RLY} H ${M.BR}`;
+      punkteSammel = `
+      <path class="flowdots duenn" id="dots-sf-a" d="M${M.BR} ${VLY} H ${vorl}"/>
+      ${zeilen > 1 ? `<path class="flowdots duenn" id="dots-sf-z2" d="M${vorl} ${VLY} V ${letzterAst}"/>` : ""}
+      <path class="flowdots duenn" id="dots-sr-z1" d="M${rueck} ${r1} V ${RLY}"/>
+      ${zeilen > 1 ? `<path class="flowdots duenn" id="dots-sr-z2" d="M${rueck} ${r2} V ${RLY}"/>` : ""}
+      <path class="flowdots duenn" id="dots-sr-a" d="M${rueck} ${RLY} H ${M.BR}"/>`;
     } else {
       // Ohne Puffer kommen die Heizkreise direkt an den Primaerkreis.
       vlPfad = `M${vorl} ${F} V ${letzterAst}`;
       rlPfad = `M${rueck} ${Math.min(...ruecks)} V ${R}`;
+      punkteSammel = `
+      <path class="flowdots duenn" id="dots-sf-a" d="M${vorl} ${F} V ${VLY}"/>
+      ${zeilen > 1 ? `<path class="flowdots duenn" id="dots-sf-z2" d="M${vorl} ${VLY} V ${letzterAst}"/>` : ""}
+      ${zeilen > 1 ? `<path class="flowdots duenn" id="dots-sr-z1" d="M${rueck} ${r1} V ${r2}"/>` : ""}
+      <path class="flowdots duenn" id="dots-sr-a" d="M${rueck} ${zeilen > 1 ? r2 : r1} V ${R}"/>`;
     }
     const rohre = `
       <!-- Sammelleitungen der Heizkreise -->
       <path class="pipe-shell duenn" d="${vlPfad} ${rlPfad}"/>
       <path class="pipe duenn" id="pipe-sec-flow" d="${vlPfad}"/>
-      <path class="pipe duenn" id="pipe-sec-ret" d="${rlPfad}"/>
-      <path class="flowdots duenn" id="dots-sf-a" d="${vlPfad}"/>
-      <path class="flowdots duenn" id="dots-sr-a" d="${rlPfad}"/>`;
+      <path class="pipe duenn" id="pipe-sec-ret" d="${rlPfad}"/>`;
+    // Reihenfolge: Rohre der Heizkreise, dann alle Laufpunkte samt
+    // Sammelleitungen, zuletzt Pumpen, Heizkoerper und Beschriftung.
+    kreise = `
+      <!-- Leitungen der Heizkreise -->${leitungen}
+      <!-- Laufpunkte der Sammelleitungen und Heizkreise -->${punkteSammel}${punkte}
+${kreise}`;
     return { rohre, kreise, vorl, rueck };
   },
 
@@ -528,9 +574,11 @@ ${this._defs()}
     return M.quellen
       .map((art, i) => {
         const yc = lagen[i];
-        const rand = art === "kamin" ? cx + 55 : cx + 58;
-        const vl = `M${rand} ${yc - 18} H ${M.BL}`;
-        const rl = `M${M.BL} ${yc + 18} H ${rand}`;
+        // Rechte Kante des Geraets auf Hoehe der Leitung. Der Kollektor
+        // ist schraeg, seine Kante liegt unten weiter links.
+        const kante = (y) => (art === "kamin" ? cx + 40 : this._solarKante(cx, yc, y));
+        const vl = `M${kante(yc - 18)} ${yc - 18} H ${M.BL}`;
+        const rl = `M${M.BL} ${yc + 18} H ${kante(yc + 18)}`;
         const ly = yc + (art === "kamin" ? 80 : 72);
         return `
       <g class="quelle" id="${art}-group">
@@ -546,54 +594,50 @@ ${this._defs()}
             <circle r="2.5" fill="#0D1219"/>
           </g>
         </g>
+        <text class="value-s" id="${art}-pump-v" x="${M.BL - 30}" y="${yc + 52}" text-anchor="middle">--</text>
         ${art === "kamin" ? this._kaminBild(cx, yc) : this._solarBild(cx, yc)}
         <text class="cap" id="${art}-name" x="${cx}" y="${ly}" text-anchor="middle">${this._t(art === "kamin" ? "kamin" : "solarthermie")}</text>
         <text class="tag-v hk-wert" id="${art}-v" x="${cx}" y="${ly + 26}" text-anchor="middle">--</text>
-        <text class="value-s" id="${art}-pump-v" x="${cx}" y="${ly + 48}" text-anchor="middle">--</text>
       </g>`;
       })
       .join("");
   },
 
-  /** Kaminofen mit Sichtfenster. Die Flammen erscheinen, wenn er heizt. */
+  /**
+   * Moderner Kaminofen: schmal, grosses Sichtfenster, Holzscheite,
+   * Aschelade, Rauchrohr oben. Ab der eingestellten Temperatur lodert
+   * ein Feuer im Fenster.
+   */
   _kaminBild(cx, yc) {
-    const x = cx - 55;
-    const top = yc - 62;
+    const x = cx - 40;
+    const t = yc - 46;
+    const fx = x + 9;
+    const fy = t + 9;
+    const boden = fy + 56;
     return `
-        <rect x="${cx - 13}" y="${top}" width="26" height="16" fill="#26303F" stroke="#33415A" stroke-width="2"/>
-        <rect x="${x}" y="${top + 16}" width="110" height="104" rx="12" fill="#161D28" stroke="#33415A" stroke-width="2"/>
-        <rect x="${x + 14}" y="${top + 30}" width="82" height="60" rx="7" fill="#0B1017" stroke="#46536A" stroke-width="1.5"/>
-        <g id="kamin-flamme" opacity="0" transform="translate(${cx} ${top + 86}) scale(1.35)">
-          <path d="M0 0 c-16 -6 -14 -20 -4 -32 c0 10 8 12 8 4 c6 8 10 20 -4 28 Z" fill="#FF8A3D"/>
-          <path d="M0 0 c-8 -3 -7 -11 -1 -17 c1 6 6 6 5 1 c4 6 4 12 -4 16 Z" fill="#FFC44D"/>
-          <path d="M-12 0 c-7 -4 -5 -12 0 -17 c0 6 4 6 4 2 c3 6 3 12 -4 15 Z" fill="#FF6B5E"/>
+        <rect x="${cx - 9}" y="${t - 16}" width="18" height="18" fill="#26303F" stroke="#33415A" stroke-width="2"/>
+        <rect x="${x}" y="${t}" width="80" height="106" rx="10" fill="#161D28" stroke="#33415A" stroke-width="2"/>
+        <rect x="${fx}" y="${fy}" width="62" height="58" rx="6" fill="#0B1017" stroke="#46536A" stroke-width="1.5"/>
+        <g id="kamin-schein" opacity="0">
+          <rect x="${fx + 1}" y="${fy + 1}" width="60" height="56" rx="5" fill="#2A1408"/>
+          <ellipse id="kamin-glut" cx="${cx}" cy="${boden - 14}" rx="26" ry="18" fill="#FF8A3D" opacity="0.3"/>
         </g>
-        <rect x="${x + 14}" y="${top + 100}" width="82" height="8" rx="4" fill="#33415A"/>`;
-  },
-
-  /** Solarkollektor mit Sonne. */
-  _solarBild(cx, yc) {
-    const x = cx - 65;
-    const u = yc + 50;
-    const o = yc - 40;
-    const strahlen = [0, 45, 90, 135, 180, 225, 270, 315]
-      .map((w) => {
-        const r = (w * Math.PI) / 180;
-        return `<line x1="${(x + 4 + Math.cos(r) * 14).toFixed(1)}" y1="${(o - 18 + Math.sin(r) * 14).toFixed(1)}"
-          x2="${(x + 4 + Math.cos(r) * 20).toFixed(1)}" y2="${(o - 18 + Math.sin(r) * 20).toFixed(1)}"
-          stroke="#FFC44D" stroke-width="2.2" stroke-linecap="round"/>`;
-      })
-      .join("");
-    const laengs = [1, 2, 3, 4]
-      .map((i) => `<line x1="${x + (94 * i) / 5}" y1="${u}" x2="${x + 36 + (94 * i) / 5}" y2="${o}" stroke="#8FA8C8" stroke-width="1" opacity="0.6"/>`)
-      .join("");
-    const quer = [1, 2]
-      .map((i) => `<line x1="${x + (36 * i) / 3}" y1="${u - (90 * i) / 3}" x2="${x + 94 + (36 * i) / 3}" y2="${u - (90 * i) / 3}" stroke="#8FA8C8" stroke-width="1" opacity="0.6"/>`)
-      .join("");
-    return `
-        <g id="solar-sonne"><circle cx="${x + 4}" cy="${o - 18}" r="10" fill="#FFC44D"/>${strahlen}</g>
-        <path d="M${x} ${u} L${x + 36} ${o} L${x + 130} ${o} L${x + 94} ${u} Z" fill="#1E5FA8" stroke="#33415A" stroke-width="2"/>
-        ${laengs}${quer}`;
+        <rect x="${cx - 24}" y="${boden - 9}" width="48" height="8" rx="4" fill="#6B4A2E" stroke="#3E2A1A" stroke-width="1"/>
+        <rect x="${cx - 18}" y="${boden - 16}" width="36" height="8" rx="4" fill="#7A5534" stroke="#3E2A1A" stroke-width="1"
+              transform="rotate(-8 ${cx} ${boden - 12})"/>
+        <circle cx="${cx - 24}" cy="${boden - 5}" r="3.6" fill="#A47B52"/>
+        <circle cx="${cx + 24}" cy="${boden - 5}" r="3.6" fill="#A47B52"/>
+        <g id="kamin-flamme" opacity="0" transform="translate(${cx} ${boden - 7}) scale(0.82)">
+          <g id="kamin-feuer">
+            <path d="M-2 0 c-20 -6 -20 -26 -6 -42 c0 12 10 14 9 3 c10 10 16 28 -3 39 Z" fill="#FF6B2E"/>
+            <path d="M12 0 c-10 -4 -10 -16 -2 -26 c0 8 7 8 6 1 c6 8 8 18 -4 25 Z" fill="#FF8A3D"/>
+            <path d="M-16 0 c-8 -4 -7 -14 0 -21 c0 7 5 7 5 2 c4 7 4 14 -5 19 Z" fill="#FF8A3D"/>
+            <path d="M0 0 c-9 -3 -9 -14 -1 -22 c1 7 6 7 5 1 c5 7 5 15 -4 21 Z" fill="#FFC44D"/>
+            <path d="M0 0 c-4 -2 -4 -7 0 -11 c1 4 3 4 3 0 c2 4 2 8 -3 11 Z" fill="#FFF1B8"/>
+          </g>
+        </g>
+        <rect x="${fx}" y="${t + 74}" width="62" height="24" rx="5" fill="#0F151E" stroke="#26303F" stroke-width="1.5"/>
+        <line x1="${fx + 10}" y1="${t + 86}" x2="${fx + 52}" y2="${t + 86}" stroke="#33415A" stroke-width="3" stroke-linecap="round"/>`;
   },
 
   /** Bildart des Heizkreises: Platte, Glieder oder Fussbodenheizung. */

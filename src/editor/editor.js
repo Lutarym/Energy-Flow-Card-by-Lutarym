@@ -5,7 +5,7 @@
 import { bedienungEditor } from "./bedienung.js";
 import { stilEditor } from "./stil.js";
 import { werkzeugeEditor } from "./werkzeuge.js";
-import { FIELD_DOMAIN, defaultEntityMap, detectIntegration } from "../erkennung.js";
+import { FIELD_DOMAIN, defaultEntityMap, detectIntegration, quellenZuordnung } from "../erkennung.js";
 import { DEFAULT_CONFIG, ENTITY_FIELDS } from "../felder.js";
 import { escapeHtml, friendly } from "../hilfsfunktionen.js";
 import { CARD_VERSION } from "../konstanten.js";
@@ -146,6 +146,7 @@ export class LutarymHeatpumpCardEditor extends HTMLElement {
             <select id="opt-layout">
               <option value="quer">${this._t("e_quer")}</option>
               <option value="hoch">${this._t("e_hoch")}</option>
+              <option value="klassisch">${this._t("e_klassisch")}</option>
             </select>
           </label>
           <label class="ed-row">
@@ -180,6 +181,22 @@ export class LutarymHeatpumpCardEditor extends HTMLElement {
               <option value="kamin">${this._t("kamin")}</option>
               <option value="solar">${this._t("solarthermie")}</option>
               <option value="beide">${this._t("e_zusatz_beide")}</option>
+            </select>
+          </label>
+          <label class="ed-row" data-zusatz-zeile="kamin">
+            <span>${this._t("e_feuer_ab")}<em>${this._t("e_feuer_ab_h")}</em></span>
+            <input type="number" id="opt-feuer" step="1">
+          </label>
+          <label class="ed-row" data-zusatz-zeile="solar">
+            <span>${this._t("e_sonne_ab")}<em>${this._t("e_sonne_ab_h")}</em></span>
+            <input type="number" id="opt-sonne" step="1">
+          </label>
+          <label class="ed-row" data-zusatz-zeile="solar">
+            <span>${this._t("e_solarstil")}<em>${this._t("e_solarstil_h")}</em></span>
+            <select id="opt-solarstil">
+              <option value="strahlen">${this._t("o_solar_strahlen")}</option>
+              <option value="funkeln">${this._t("o_solar_funkeln")}</option>
+              <option value="roehren">${this._t("o_solar_roehren")}</option>
             </select>
           </label>
           <label class="ed-row">
@@ -443,6 +460,9 @@ export class LutarymHeatpumpCardEditor extends HTMLElement {
     bind("opt-tuer", (el) => put({ show_door: el.checked }));
     [1, 2, 3, 4].forEach((n) => bind(`opt-hk${n}-stil`, (el) => put({ [`hk${n}_style`]: el.value })));
     bind("opt-zusatz", (el) => { put({ extra_heat: el.value }); this._syncValues(); });
+    bind("opt-feuer", (el) => { const v = parseFloat(el.value); if (Number.isFinite(v)) put({ kamin_fire_temp: v }); });
+    bind("opt-solarstil", (el) => put({ solar_style: el.value }));
+    bind("opt-sonne", (el) => { const v = parseFloat(el.value); if (Number.isFinite(v)) put({ solar_sun_temp: v }); });
     bind("opt-puffer", (el) => put({ buffer_present: el.value === "ja" ? true : el.value === "nein" ? false : "auto" }));
     bind("opt-zirk", (el) => put({ circulation_present: el.value === "ja" ? true : el.value === "nein" ? false : "auto" }));
 
@@ -497,7 +517,7 @@ export class LutarymHeatpumpCardEditor extends HTMLElement {
           link.click();
           if (aufraeumen) setTimeout(aufraeumen, 1000);
           sagen(this._t("m_datei_ok"));
-        } catch (e) {
+        } catch {
           sagen(this._t("m_datei_fehler"));
         }
       });
@@ -528,7 +548,7 @@ export class LutarymHeatpumpCardEditor extends HTMLElement {
         let gelesen;
         try {
           gelesen = JSON.parse(feld.value);
-        } catch (e) {
+        } catch {
           sagen(this._t("m_json"));
           return;
         }
@@ -610,11 +630,11 @@ export class LutarymHeatpumpCardEditor extends HTMLElement {
 
     this.shadowRoot.getElementById("btn-adopt").addEventListener("click", () => {
       const f = detectIntegration(this._hass, profilFuer(this._config));
-      if (f.found) applyMap(f.entities, true);
+      if (f.found) applyMap(quellenZuordnung(f.entities, this._config.extra_heat), true);
     });
     this.shadowRoot
       .getElementById("btn-default")
-      .addEventListener("click", () => applyMap(defaultEntityMap(), true));
+      .addEventListener("click", () => applyMap(quellenZuordnung(defaultEntityMap(), this._config.extra_heat), true));
     this.shadowRoot
       .getElementById("btn-clear")
       .addEventListener("click", () => applyMap({}, false));
@@ -694,6 +714,14 @@ export class LutarymHeatpumpCardEditor extends HTMLElement {
     put("opt-zusatz", this._config.extra_heat || "aus");
     // Entitaetsgruppen fuer HK3, HK4 und Zusatzwaerme nur, wenn genutzt.
     const zusatz = this._config.extra_heat || "aus";
+    put("opt-feuer", this._config.kamin_fire_temp ?? 30);
+    put("opt-sonne", this._config.solar_sun_temp ?? 30);
+    put("opt-solarstil", this._config.solar_style || "strahlen");
+    // Grenzen fuer Feuer und Sonne nur, wenn Kamin oder Solarthermie genutzt.
+    sr.querySelectorAll("[data-zusatz-zeile]").forEach((z) => {
+      const art = z.dataset.zusatzZeile;
+      z.style.display = zusatz === art || zusatz === "beide" ? "" : "none";
+    });
     sr.querySelectorAll("details[data-gruppe-name]").forEach((d) => {
       const name = d.dataset.gruppeName;
       let zeigen = true;

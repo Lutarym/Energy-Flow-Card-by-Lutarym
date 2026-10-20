@@ -2,7 +2,7 @@
  * Die Karte: Lebenszyklus, Konfiguration, Aufbau und Animation.
  * Teil der Heatpump Flow Card by Lutarym. Gebaut wird mit "npm run build".
  */
-import { detectIntegration } from "../erkennung.js";
+import { detectIntegration, quellenZuordnung } from "../erkennung.js";
 import { DEFAULT_CONFIG } from "../felder.js";
 import { animationAn, bewegungReduziert, bubbleDauer, clamp, dezimalFuer, escapeHtml, numState, setzeDezimal } from "../hilfsfunktionen.js";
 import { aktualisierenKarte } from "./aktualisieren.js";
@@ -10,10 +10,12 @@ import { demoKarte } from "./demo.js";
 import { diagrammeKarte } from "./diagramme.js";
 import { dialogKarte } from "./dialog.js";
 import { grafikHochKarte } from "./grafik-hoch.js";
+import { grafikKlassischKarte } from "./grafik-klassisch.js";
 import { grafikQuerKarte } from "./grafik-quer.js";
 import { heizkurveKarte } from "./heizkurve.js";
 import { hilfeKarte } from "./hilfe.js";
 import { kennzahlenKarte } from "./kennzahlen.js";
+import { solarKarte } from "./solar.js";
 import { stilKarte } from "./stil.js";
 import { tuerKarte } from "./tuer.js";
 import { verlaufKarte } from "./verlauf.js";
@@ -82,7 +84,7 @@ export class LutarymHeatpumpCard extends HTMLElement {
             this._startAnimationLoop();
           }
         });
-      } catch (e) {
+      } catch {
         this._bewegungMq = null;
       }
     }
@@ -191,7 +193,10 @@ export class LutarymHeatpumpCard extends HTMLElement {
     const configured = eintraege[key] || eintraege[alias[key]];
     if (configured) return configured;
     if (!this._auto) {
-      this._auto = detectIntegration(this._quelle, eigenesProfil(this._config) || undefined).entities;
+      this._auto = quellenZuordnung(
+        detectIntegration(this._quelle, eigenesProfil(this._config) || undefined).entities,
+        this._config.extra_heat
+      );
     }
     return this._auto[key] || "";
   }
@@ -593,6 +598,24 @@ export class LutarymHeatpumpCard extends HTMLElement {
         el.setAttribute("transform", `rotate(${state.winkel.toFixed(2)} 0 0)`);
       });
 
+      // Feuer flackern: Flammen strecken und stauchen sich unregelmaessig.
+      // Solarthermie: Effekte der gewaehlten Darstellung.
+      this._animState.forEach((state, id) => {
+        if (!state) return;
+        if (state.type === "solar") {
+          this._solarBildFrame(this._animTime);
+          return;
+        }
+        if (state.type !== "flacker") return;
+        const el = this._animEl(id);
+        if (!el) return;
+        const t = this._animTime;
+        const sy = 1 + 0.09 * Math.sin(t * 9.1) + 0.05 * Math.sin(t * 14.3 + 1.3);
+        const sx = 1 - 0.05 * Math.sin(t * 11.7 + 0.7);
+        const kipp = 3 * Math.sin(t * 6.3);
+        el.setAttribute("transform", `skewX(${kipp.toFixed(2)}) scale(${sx.toFixed(3)} ${sy.toFixed(3)})`);
+      });
+
       this._animLoop = requestAnimationFrame(tick);
     };
     this._animLoop = requestAnimationFrame(tick);
@@ -610,6 +633,8 @@ Object.assign(
   hilfeKarte,
   tuerKarte,
   grafikQuerKarte,
+  grafikKlassischKarte,
+  solarKarte,
   grafikHochKarte,
   heizkurveKarte,
   stilKarte

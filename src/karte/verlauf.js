@@ -48,7 +48,7 @@ export const verlaufKarte = {
         this._tagStartTag = mitternacht;
         this._render();
       }
-    } catch (err) {
+    } catch {
       // Keine Historie verfuegbar, es bleibt beim Gesamtstand.
     }
   },

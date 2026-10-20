@@ -2,6 +2,89 @@
 
 **English** · [Deutsch](#deutsch) · [Français](#français) · [日本語](#日本語)
 
+## v5.3.2
+
+- English: Fixed: in portrait without a buffer, the collector pipes ran through the labels of the diverter valve and the primary pump. They now branch off at the height of heating circuit 1, and heating circuit 1 is drawn with one continuous pipe.
+- English: Fixed: with 3 or 4 heating circuits, the return of the upper row crossed the vertical flow collector as if both were connected. It now jumps over it with a small arc (with and without buffer).
+- English: Code cleanup: all 21 warnings of the code check removed (unused variables). No change in function.
+- Deutsch: Behoben: Im Hochformat ohne Puffer liefen die Sammelleitungen durch die Beschriftung von Umschaltventil und Primärpumpe. Sie zweigen jetzt auf Höhe von Heizkreis 1 ab, und Heizkreis 1 wird mit einem durchgehenden Rohr gezeichnet.
+- Deutsch: Behoben: Bei 3 oder 4 Heizkreisen kreuzte der Rücklauf der oberen Reihe die senkrechte Vorlauf-Sammelleitung, als wären beide verbunden. Er springt jetzt mit einem kleinen Bogen darüber (mit und ohne Puffer).
+- Deutsch: Code bereinigt: alle 21 Warnungen der Codeprüfung entfernt (unbenutzte Variablen). Keine Änderung der Funktion.
+- Français : corrigé : en portrait sans ballon tampon, les collecteurs traversaient les libellés de la vanne trois voies et de la pompe primaire. Ils se raccordent désormais à la hauteur du circuit 1, dessiné avec une conduite continue.
+- Français : corrigé : avec 3 ou 4 circuits, le retour de la rangée supérieure croisait le collecteur de départ vertical comme s'ils étaient reliés. Il le franchit maintenant par un petit arc (avec et sans ballon tampon).
+- Français : code nettoyé : les 21 avertissements de la vérification du code ont été supprimés (variables inutilisées). Aucun changement de fonction.
+- 日本語：修正：縦レイアウトでバッファーがない場合、ヘッダー配管が三方弁と一次ポンプの表示を横切っていました。暖房回路 1 の高さで分岐するようにし、回路 1 は 1 本の連続した配管で描きます。
+- 日本語：修正：暖房回路が 3 または 4 の場合、上段の戻り配管が縦の往きヘッダーとつながっているように交差していました。小さな弧で飛び越えるようにしました（バッファーの有無を問わず）。
+- 日本語：コード整理：コードチェックの警告 21 件（未使用の変数）をすべて解消しました。機能の変更はありません。
+
+## v5.3.1
+
+- English: Fixed: the moving dots of the collector pipes ran along to heating circuits 3 and 4 even when these were off. The collector pipes are now split into sections. In landscape the part to the second row runs only when circuit 3 or 4 runs, the return of each row only with its circuits. In portrait each section between two circuits runs only when a circuit behind it runs.
+- English: Stove only: the Aquarea has a single solar input. If only the stove is selected, the card reads the HeishaMon entities TOP47 (temperature) and OPT5 (pump) for the stove. Own stove entities take precedence. With solar thermal alone or both, TOP47 and OPT5 stay with solar thermal.
+- Deutsch: Behoben: Die Laufpunkte der Sammelleitungen liefen bis zu Heizkreis 3 und 4 mit, auch wenn diese aus waren. Die Sammelleitungen sind jetzt in Abschnitte geteilt. Im Querformat läuft der Teil zur zweiten Reihe nur, wenn Heizkreis 3 oder 4 läuft, der Rücklauf jeder Reihe nur mit ihren Kreisen. Im Hochformat läuft jeder Abschnitt zwischen zwei Heizkreisen nur, wenn ein Kreis dahinter läuft.
+- Deutsch: Kamin allein: Die Aquarea hat nur einen Solareingang. Ist nur der Kamin gewählt, liest die Karte für den Kamin die HeishaMon-Entitäten TOP47 (Temperatur) und OPT5 (Pumpe). Eigene Kamin-Entitäten haben Vorrang. Bei Solarthermie allein oder beidem bleiben TOP47 und OPT5 bei der Solarthermie.
+- Français : corrigé : les points animés des collecteurs allaient jusqu'aux circuits 3 et 4 même à l'arrêt. Les collecteurs sont désormais divisés en tronçons. En paysage, la partie vers la deuxième rangée ne s'anime que si le circuit 3 ou 4 tourne, le retour de chaque rangée seulement avec ses circuits. En portrait, chaque tronçon entre deux circuits ne s'anime que si un circuit situé après tourne.
+- Français : poêle seul : l'Aquarea n'a qu'une entrée solaire. Si seul le poêle est choisi, la carte lit pour le poêle les entités HeishaMon TOP47 (température) et OPT5 (pompe). Les entités propres du poêle sont prioritaires. Avec le solaire thermique seul ou les deux, TOP47 et OPT5 restent au solaire thermique.
+- 日本語：修正：暖房回路 3 と 4 が停止していても、ヘッダー配管の流れの点がそこまで動いていました。ヘッダー配管を区間に分けました。横レイアウトでは 2 段目への区間は回路 3 または 4 の運転時のみ、各段の戻りはその段の回路の運転時のみ動きます。縦レイアウトでは 2 つの回路の間の各区間は、その先の回路が運転しているときのみ動きます。
+- 日本語：薪ストーブのみ：Aquarea の太陽熱入力は 1 つだけです。薪ストーブのみを選択した場合、薪ストーブには HeishaMon の TOP47（温度）と OPT5（ポンプ）を使います。独自の薪ストーブ用エンティティが優先されます。太陽熱のみ、または両方の場合、TOP47 と OPT5 は太陽熱に使われます。
+
+## v5.3.0
+
+- English: Solar thermal now offers three styles, selectable in the editor (option `solar_style`): light rays and cell wave (default, rays fall from the sun onto the collector, the cells light up as a wave, heat rises), warming and sparkle (the collector warms from the top, the glass sparkles, heat shimmers above it), tube collector (vacuum tubes in which glowing heat rises). All three appear from the set collector temperature; with animation off they show a still image.
+- Deutsch: Die Solarthermie bietet jetzt drei Darstellungen, im Editor wählbar (Option `solar_style`): Lichtstrahlen und Zellenwelle (Standard, Strahlen fallen von der Sonne auf den Kollektor, die Felder leuchten als Welle auf, Wärme steigt auf), Aufwärmen und Funkeln (der Kollektor wird von oben warm, das Glas funkelt, darüber flimmert Hitze), Röhrenkollektor (Vakuumröhren, in denen leuchtende Wärme nach oben steigt). Alle drei erscheinen ab der eingestellten Kollektortemperatur; ohne Animation zeigen sie ein Standbild.
+- Français : le solaire thermique propose maintenant trois styles, au choix dans l'éditeur (option `solar_style`) : rayons et vague de cellules (par défaut, les rayons tombent du soleil sur le capteur, les cellules s'allument en vague, la chaleur monte), réchauffement et scintillement (le capteur se réchauffe par le haut, le verre scintille, la chaleur ondule au-dessus), capteur à tubes (tubes sous vide où la chaleur lumineuse monte). Les trois apparaissent à partir de la température réglée du capteur ; sans animation, ils affichent une image fixe.
+- 日本語：太陽熱の表示を 3 種類から選べるようになりました（エディター、オプション `solar_style`）：光線とセルの波（既定。太陽から集熱器へ光線が落ち、セルが波のように光り、熱が立ち上ります）、加熱ときらめき（集熱器が上から温まり、ガラスがきらめき、上に陽炎が揺れます）、真空管集熱器（管の中を光る熱が上昇します）。いずれも設定した集熱器温度以上で表示され、アニメーション無効時は静止画になります。
+
+## v5.2.3
+
+- English: Demo mode: with 3 or 4 heating circuits the demo bar offers switches for the pumps and sliders for the water temperature of circuits 3 and 4.
+- English: Fixed: in landscape both pipes of the solar thermal collector now reach its slanted edge.
+- Deutsch: Demomodus: Bei 3 oder 4 Heizkreisen bietet die Demoleiste Schalter für die Pumpen und Regler für die Wassertemperatur von Heizkreis 3 und 4.
+- Deutsch: Behoben: Im Querformat reichen beide Leitungen der Solarthermie jetzt bis an die schräge Kante des Kollektors.
+- Français : mode démo : avec 3 ou 4 circuits, la barre de démo propose des interrupteurs pour les pompes et des curseurs pour la température d'eau des circuits 3 et 4.
+- Français : corrigé : en paysage, les deux conduites du solaire thermique atteignent désormais le bord oblique du capteur.
+- 日本語：デモモード：暖房回路が 3 または 4 の場合、デモバーに回路 3 と 4 のポンプのスイッチと水温のスライダーが表示されます。
+- 日本語：修正：横レイアウトで太陽熱集熱器の 2 本の配管が斜めの縁まで届くようにしました。
+
+## v5.2.2
+
+- English: Fixed: in landscape the moving dots of heating circuits 1 and 3 were hidden. The pipe of the circuit next to them lay on top of the shared section. Now all pipes are drawn first and all moving dots above them, for all 4 circuits.
+- English: Stove and solar thermal: the pump state now stands directly at the pump and only says "running" or "off".
+- Deutsch: Behoben: Im Querformat waren die Laufpunkte von Heizkreis 1 und 3 verdeckt. Das Rohr des Kreises daneben lag über dem gemeinsamen Abschnitt. Jetzt werden erst alle Rohre und darüber alle Laufpunkte gezeichnet, für alle 4 Heizkreise.
+- Deutsch: Kamin und Solarthermie: Der Pumpenzustand steht jetzt direkt an der Pumpe und lautet nur noch „läuft“ oder „aus“.
+- Français : corrigé : en paysage, les points animés des circuits 1 et 3 étaient masqués. La conduite du circuit voisin recouvrait le tronçon commun. Désormais toutes les conduites sont dessinées d'abord, puis tous les points animés par-dessus, pour les 4 circuits.
+- Français : poêle et solaire thermique : l'état de la pompe s'affiche directement à la pompe et indique seulement « en marche » ou « arrêt ».
+- 日本語：修正：横レイアウトで暖房回路 1 と 3 の流れの点が隠れていました。隣の回路の配管が共通区間の上に重なっていたためです。すべての配管を先に描き、その上に流れの点を描くようにしました（4 回路すべて）。
+- 日本語：薪ストーブと太陽熱：ポンプの状態をポンプのすぐそばに表示し、「運転中」または「停止」のみにしました。
+
+## v5.2.1
+
+- English: Demo mode: when stove or solar thermal is selected, the demo bar offers a switch for its pump and a slider for its temperature. So the fire and the sun can be tried out.
+- Deutsch: Demomodus: Ist Kamin oder Solarthermie gewählt, bietet die Demoleiste einen Schalter für die Pumpe und einen Regler für die Temperatur. So lassen sich Feuer und Sonne ausprobieren.
+- Français : mode démo : si le poêle ou le solaire thermique est choisi, la barre de démo propose un interrupteur pour sa pompe et un curseur pour sa température. Le feu et le soleil peuvent ainsi être essayés.
+- 日本語：デモモード：薪ストーブまたは太陽熱を選択している場合、デモバーにポンプのスイッチと温度のスライダーが表示されます。炎と太陽の表示を試せます。
+
+## v5.2.0
+
+- English: New stove picture: a modern wood stove with a large viewing window, logs, ash drawer and flue pipe. From a set stove temperature (option `kamin_fire_temp`, default 30 °C) a fire burns in the window and flickers when animation is on. Solar thermal works the same way: from a set collector temperature (option `solar_sun_temp`, default 30 °C) the sun shines, its rays turn slowly and a light reflection moves across the collector. Below the limit the sun is grey. Both limits can be set in the editor next to the additional heat.
+- Deutsch: Neues Kaminbild: ein moderner Kaminofen mit großem Sichtfenster, Holzscheiten, Aschelade und Rauchrohr. Ab einer einstellbaren Kamintemperatur (Option `kamin_fire_temp`, Standard 30 °C) lodert ein Feuer im Fenster, mit Animation flackert es. Bei der Solarthermie ebenso: ab einer einstellbaren Kollektortemperatur (Option `solar_sun_temp`, Standard 30 °C) scheint die Sonne, ihre Strahlen drehen sich langsam und ein Lichtschein zieht über den Kollektor. Unter der Grenze ist die Sonne grau. Beide Grenzen lassen sich im Editor bei der Zusatzwärme einstellen.
+- Français : nouvelle image du poêle : un poêle à bois moderne avec grande vitre, bûches, cendrier et conduit de fumée. À partir d'une température réglable du poêle (option `kamin_fire_temp`, 30 °C par défaut), un feu brûle derrière la vitre et vacille avec l'animation. De même pour le solaire thermique : à partir d'une température réglable du capteur (option `solar_sun_temp`, 30 °C par défaut), le soleil brille, ses rayons tournent lentement et un reflet traverse le capteur. En dessous du seuil, le soleil est gris. Les deux seuils se règlent dans l'éditeur à côté de la chaleur d'appoint.
+- 日本語：薪ストーブの図を変更しました：大きな覗き窓、薪、灰受け、煙突を備えたモダンな薪ストーブです。設定した薪ストーブ温度（オプション `kamin_fire_temp`、既定 30 °C）以上で窓の中に炎が燃え、アニメーション有効時は揺らぎます。太陽熱も同様に、設定した集熱器温度（オプション `solar_sun_temp`、既定 30 °C）以上で太陽が輝き、光線がゆっくり回り、集熱器の上を光の反射が流れます。しきい値未満では太陽は灰色です。どちらのしきい値もエディターの追加熱源の項目で設定できます。
+
+## v5.1.7
+
+- English: Landscape: SG Ready, PV surplus, power and energy now stand centred between the heat pump and the hot water tank. The primary pump sits on the common return between the heat pump and the hot water branch, so every return flow passes through it. The circulation label stands vertically to the left of the circulation pump, between the hot water tank and the circulation pipe.
+- Deutsch: Querformat: SG Ready, PV Überschuss, Leistung und Zählerstand stehen mittig zwischen Wärmepumpe und Warmwasserspeicher. Die Primärpumpe sitzt auf dem gemeinsamen Rücklauf zwischen Wärmepumpe und Warmwasserabzweig, so fließt jeder Rücklauf durch sie. Die Beschriftung der Zirkulation steht senkrecht links neben der Zirkulationspumpe, zwischen Warmwasserspeicher und Zirkulationsleitung.
+- Français : paysage : SG Ready, surplus PV, puissance et compteur sont centrés entre la pompe à chaleur et le ballon d'eau chaude. La pompe primaire se trouve sur le retour commun entre la pompe à chaleur et la dérivation d'eau chaude, tout retour passe donc par elle. Le libellé de la circulation est vertical, à gauche de la pompe de circulation, entre le ballon d'eau chaude et la conduite de circulation.
+- 日本語：横レイアウト：SG Ready、PV 余剰、消費電力、積算値をヒートポンプと給湯タンクの中央に配置しました。一次ポンプはヒートポンプと給湯分岐の間の共通戻り配管に移し、すべての戻り水が通るようにしました。循環の表示は循環ポンプの左側、給湯タンクと循環配管の間に縦書きで配置しました。
+
+## v5.1.5
+
+- English: The previous view up to version 4.9 remains selectable as "Landscape classic" (option `layout: klassisch`): buffer, heating circuits 1 and 2, hot water tank on the right. It shows at most 2 heating circuits and no additional heat.
+- Deutsch: Die bisherige Ansicht bis Version 4.9 bleibt als „Querformat klassisch“ wählbar (Option `layout: klassisch`): Puffer, Heizkreis 1 und 2, Warmwasserspeicher rechts. Sie zeigt höchstens 2 Heizkreise und keine Zusatzwärme.
+- Français : l'ancienne vue jusqu'à la version 4.9 reste disponible sous « Paysage classique » (option `layout: klassisch`) : ballon tampon, circuits 1 et 2, ballon d'eau chaude à droite. Elle affiche au plus 2 circuits et pas de chaleur d'appoint.
+- 日本語：バージョン 4.9 までの表示を「横長（クラシック）」として選べます（オプション `layout: klassisch`）：バッファー、暖房回路 1 と 2、右側に給湯タンク。暖房回路は最大 2 系統で、追加熱源は表示しません。
+
 ## v5.1.0
 
 - English: New arrangement in landscape: heat pump, hot water tank, additional heat, buffer, heating circuits. The three-way valve sits above the hot water tank: down to the hot water tank, straight on to heating. Circulation runs narrow along the right side of the hot water tank, primary pump and water pressure sit on the return. Up to 4 heating circuits (`hk_count` 1 to 4): circuits 1 and 2 side by side, circuits 3 and 4 one level below. Circuits 3 and 4 use own entities (`hk3_water`, `hk3_pump`, `hk3_switch`, the same for 4), because the Aquarea controls only two zones. New: additional heat at the buffer (`extra_heat`: off, stove, solar thermal or both). Stove and solar thermal stand on the producer side to the left of the buffer, each with its own flow, return and pump; name, temperature and pump state stand below the device. Solar thermal uses TOP47 and OPT5 of HeishaMon by Lutarym, the stove own entities (`kamin_temp`, `kamin_pump`). The stove shows flames while its pump runs, bubbles rise in the buffer while one of them charges it. Heating circuit and additional heat pipes are narrower. The portrait layout gets the additional heat row below the buffer and up to 4 heating circuits. The editor offers 1 to 4 circuits, picture and name for each, and the additional heat; the entity groups for circuits 3 and 4 and for additional heat appear only when used.

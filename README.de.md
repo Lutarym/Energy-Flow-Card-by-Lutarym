@@ -74,7 +74,7 @@ Die Entitäts-IDs sind die Standardnamen der Karte. Deine Entitäten können and
 
 | Option | Vorgabe | Bedeutung |
 |---|---|---|
-| `layout` | `quer` | `quer` Querformat, `hoch` Hochformat |
+| `layout` | `quer` | `quer` Querformat, `hoch` Hochformat, `klassisch` Querformat wie bis Version 4.9 (höchstens 2 Heizkreise, ohne Zusatzwärme) |
 | `hk_count` | `2` | Anzahl der Heizkreise, 1 bis 4. HK3 und HK4 brauchen eigene Entitäten, die Aquarea regelt nur zwei Zonen |
 | `fan_count` | `2` | Anzahl der Lüfter, 1 oder 2 |
 | `language` | `auto` | `auto`, `de`, `en`, `fr` oder `ja` |
@@ -103,6 +103,9 @@ Die Entitäts-IDs sind die Standardnamen der Karte. Deine Entitäten können and
 | `animate` | `true` | Animation: `true` ein, `false` aus, `auto` das Gerät entscheidet (Einstellung „Bewegung reduzieren“) |
 | `hk1_style` bis `hk4_style` | `platte` | Bild des Heizkreises: `platte` Plattenheizkörper, `glieder` Gliederheizkörper, `fbh` Fußbodenheizung |
 | `extra_heat` | `aus` | Zusatzwärme am Puffer: `aus`, `kamin`, `solar`, `beide`. Nur mit Heizungspuffer |
+| `kamin_fire_temp` | `30` | Ab dieser Kamintemperatur in °C lodert das Feuer im Kamin |
+| `solar_sun_temp` | `30` | Ab dieser Kollektortemperatur in °C scheint die Sonne über der Solarthermie |
+| `solar_style` | `strahlen` | Darstellung der Solarthermie: `strahlen` (Lichtstrahlen und Zellenwelle), `funkeln` (Aufwärmen und Funkeln), `roehren` (Röhrenkollektor) |
 | `demo` | `false` | Beispielwerte zum Ausprobieren |
 
 ### Entitäten
@@ -175,8 +178,8 @@ Alle Felder sind optional. Ein Feld ohne Entität wird auf der Karte ausgeblende
 | `hk3_water, hk4_water` | Wassertemperatur HK3, HK4 | eigene Entität, °C |
 | `hk3_pump, hk4_pump` | Pumpe HK3, HK4 läuft | eigener Schalter oder Sensor |
 | `hk3_switch, hk4_switch` | HK3, HK4 ein und aus | eigener Schalter, optional |
-| `kamin_temp` | Kamin Temperatur | eigene Entität, °C |
-| `kamin_pump` | Kamin Pumpe läuft | eigener Schalter oder Sensor |
+| `kamin_temp` | Kamin Temperatur | eigene Entität, °C; Kamin allein: TOP47 |
+| `kamin_pump` | Kamin Pumpe läuft | eigener Schalter oder Sensor; Kamin allein: OPT5 |
 | `solar_temp` | Solarthermie Temperatur | TOP47 |
 | `solar_pump` | Solarthermie Pumpe läuft | OPT5 |
 | **Warmwasser** | | |

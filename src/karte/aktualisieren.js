@@ -70,7 +70,6 @@ export const aktualisierenKarte = {
   _update() {
     const hass = this._quelle;
     if (!hass) return;
-    const sr = this.shadowRoot;
     const min = Number(this._config.scale_min);
     const max = Number(this._config.scale_max);
     const col = (v) => thermalColor(v, min, max);
@@ -575,8 +574,6 @@ export const aktualisierenKarte = {
     for (let n = 1; n <= this._hkAnzahl(); n++) {
       kreisLaeuft.push(this._circuitUpdate(n, col, animate, buf, laeuft));
     }
-    // Im Hochformat fuehrt der zweite Abschnitt zu allen weiteren Heizkreisen.
-    const hk2Laeuft = kreisLaeuft.slice(1).some(Boolean);
 
     // Mit Puffer wird der Sekundaerkreis bewegt, sobald eine Kreispumpe
     // foerdert, seine Waerme kommt aus dem Puffer. Ohne Puffer liefern
@@ -588,8 +585,21 @@ export const aktualisierenKarte = {
     // Der Abschnitt zum zweiten Heizkreis nur, wenn dieser Fluss hat.
     stroemt(["dots-sf-a"], sekundaer, farbeVL);
     stroemt(["dots-sr-a"], sekundaer, farbeRL);
-    stroemt(["dots-sf-b"], hk2Laeuft, farbeVL);
-    stroemt(["dots-sr-b"], hk2Laeuft, farbeRL);
+    // Hochformat: jeder Abschnitt zwischen zwei Heizkreisen laeuft nur,
+    // wenn ein Kreis dahinter laeuft.
+    [2, 3, 4].forEach((k) => {
+      const id = k === 2 ? "" : String(k);
+      const dahinter = kreisLaeuft.slice(k - 1).some(Boolean);
+      stroemt([`dots-sf-b${id}`], dahinter, farbeVL);
+      stroemt([`dots-sr-b${id}`], dahinter, farbeRL);
+    });
+    // Querformat: HK1 und HK2 bilden die erste Reihe, HK3 und HK4 die zweite.
+    const spalten = Math.min(kreisLaeuft.length, 2);
+    const reihe1 = kreisLaeuft.slice(0, spalten).some(Boolean);
+    const reihe2 = kreisLaeuft.slice(spalten).some(Boolean);
+    stroemt(["dots-sf-z2"], reihe2, farbeVL);
+    stroemt(["dots-sr-z1"], reihe1, farbeRL);
+    stroemt(["dots-sr-z2"], reihe2, farbeRL);
 
     /* Durchflussanimation */
     // Der Primaerkreis foerdert, wenn Pumpe oder Durchfluss das melden.
@@ -663,14 +673,15 @@ export const aktualisierenKarte = {
       if (tEl) tEl.textContent = temp === null ? "--" : `${fmt(temp, 1)} °C`;
       const pEl = this._animEl(`${art}-pump-v`);
       if (pEl) {
-        pEl.textContent = this._e(`${art}_pump`)
-          ? tf(this._t("pumpe_wert"), { v: wertText(pumpe ? "läuft" : "aus", this._sp()) })
-          : "";
+        // Wie bei den Heizkreisen nur der Zustand, direkt an der Pumpe.
+        pEl.textContent = this._e(`${art}_pump`) ? wertText(pumpe ? "läuft" : "aus", this._sp()) : "";
       }
-      if (art === "kamin") {
-        const flamme = this._animEl("kamin-flamme");
-        if (flamme) flamme.setAttribute("opacity", pumpe ? "1" : "0");
-      }
+      // Feuer im Kamin und Sonne ueber der Solarthermie haengen an der
+      // Temperatur, ab der eingestellten Grenze.
+      const grenze = Number(this._config[art === "kamin" ? "kamin_fire_temp" : "solar_sun_temp"]);
+      const aktiv = temp !== null && temp >= (Number.isFinite(grenze) ? grenze : 30);
+      if (art === "kamin") this._kaminFeuer(aktiv, animate);
+      else this._solarSonne(aktiv, animate);
       this._blattFarbe(`${art}-blade`, col(temp), pumpe);
       const rotorId = `${art}-rotor`;
       const rotor = this._animEl(rotorId);
@@ -701,9 +712,29 @@ export const aktualisierenKarte = {
     return laedt;
   },
 
+  /** Feuer im Kamin: sichtbar ab der Grenze, lodert mit Animation. */
+  _kaminFeuer(an, animate) {
+    const sichtbar = (id, ja) => {
+      const el = this._animEl(id);
+      if (el) el.setAttribute("opacity", ja ? "1" : "0");
+    };
+    sichtbar("kamin-schein", an);
+    sichtbar("kamin-flamme", an);
+    const feuer = this._animEl("kamin-feuer");
+    const glut = this._animEl("kamin-glut");
+    if (an && animate) {
+      if (!this._animState.has("kamin-feuer")) this._animState.set("kamin-feuer", { type: "flacker" });
+      this._animState.set("kamin-glut", { type: "pulse", duration: 1.7, min: 0.15, max: 0.45 });
+    } else {
+      this._animState.delete("kamin-feuer");
+      this._animState.delete("kamin-glut");
+      if (feuer) feuer.removeAttribute("transform");
+      if (glut) glut.setAttribute("opacity", "0.3");
+    }
+  },
+
   _circuitUpdate(n, col, animate, buf, laeuft) {
     const hass = this._quelle;
-    const sr = this.shadowRoot;
     const water = numState(hass, this._e(`hk${n}_water`));
     const pumpOn = isOn(hass, this._e(`hk${n}_pump`)) === true;
 

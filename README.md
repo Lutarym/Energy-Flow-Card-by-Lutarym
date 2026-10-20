@@ -74,7 +74,7 @@ The entity IDs are the default names of the card. Your entities may be named dif
 
 | Option | Default | Meaning |
 |---|---|---|
-| `layout` | `quer` | `quer` landscape, `hoch` portrait |
+| `layout` | `quer` | `quer` landscape, `hoch` portrait, `klassisch` landscape as up to version 4.9 (at most 2 circuits, no additional heat) |
 | `hk_count` | `2` | Number of heating circuits, 1 to 4. Circuits 3 and 4 need own entities, the Aquarea controls only two zones |
 | `fan_count` | `2` | Number of fans, 1 or 2 |
 | `language` | `auto` | `auto`, `de`, `en`, `fr` or `ja` |
@@ -103,6 +103,9 @@ The entity IDs are the default names of the card. Your entities may be named dif
 | `animate` | `true` | Animation: `true` on, `false` off, `auto` the device decides (setting "reduce motion") |
 | `hk1_style` to `hk4_style` | `platte` | Picture of the heating circuit: `platte` panel radiator, `glieder` column radiator, `fbh` underfloor heating |
 | `extra_heat` | `aus` | Additional heat at the buffer: `aus` (off), `kamin` (stove), `solar`, `beide` (both). Only with a heating buffer |
+| `kamin_fire_temp` | `30` | From this stove temperature in °C the fire burns in the stove |
+| `solar_sun_temp` | `30` | From this collector temperature in °C the sun shines above the solar thermal collector |
+| `solar_style` | `strahlen` | Solar thermal style: `strahlen` (light rays and cell wave), `funkeln` (warming and sparkle), `roehren` (tube collector) |
 | `demo` | `false` | Sample values for trying out |
 
 ### Entities
@@ -175,8 +178,8 @@ All fields are optional. A field without an entity is hidden on the card. Where 
 | `hk3_water, hk4_water` | Water temperature circuit 3, 4 | own entity, °C |
 | `hk3_pump, hk4_pump` | Pump circuit 3, 4 running | own switch or sensor |
 | `hk3_switch, hk4_switch` | Circuit 3, 4 on and off | own switch, optional |
-| `kamin_temp` | Stove temperature | own entity, °C |
-| `kamin_pump` | Stove pump running | own switch or sensor |
+| `kamin_temp` | Stove temperature | own entity, °C; stove only: TOP47 |
+| `kamin_pump` | Stove pump running | own switch or sensor; stove only: OPT5 |
 | `solar_temp` | Solar thermal temperature | TOP47 |
 | `solar_pump` | Solar thermal pump running | OPT5 |
 | **Hot water** | | |

@@ -74,7 +74,7 @@ Les identifiants sont les noms par défaut de la carte. Vos entités peuvent por
 
 | Option | Défaut | Signification |
 |---|---|---|
-| `layout` | `quer` | `quer` paysage, `hoch` portrait |
+| `layout` | `quer` | `quer` paysage, `hoch` portrait, `klassisch` paysage comme jusqu'à la version 4.9 (au plus 2 circuits, sans chaleur d'appoint) |
 | `hk_count` | `2` | Nombre de circuits, 1 à 4. Les circuits 3 et 4 nécessitent des entités propres, l'Aquarea ne régule que deux zones |
 | `fan_count` | `2` | Nombre de ventilateurs, 1 ou 2 |
 | `language` | `auto` | `auto`, `de`, `en`, `fr` ou `ja` |
@@ -103,6 +103,9 @@ Les identifiants sont les noms par défaut de la carte. Vos entités peuvent por
 | `animate` | `true` | Animation : `true` marche, `false` arrêt, `auto` l'appareil décide (réglage « réduire les animations ») |
 | `hk1_style` à `hk4_style` | `platte` | Image du circuit : `platte` radiateur à panneaux, `glieder` radiateur à éléments, `fbh` plancher chauffant |
 | `extra_heat` | `aus` | Chaleur d'appoint au ballon tampon : `aus` (arrêt), `kamin` (poêle), `solar`, `beide` (les deux). Uniquement avec ballon tampon |
+| `kamin_fire_temp` | `30` | À partir de cette température du poêle en °C, le feu brûle dans le poêle |
+| `solar_sun_temp` | `30` | À partir de cette température du capteur en °C, le soleil brille au-dessus du solaire thermique |
+| `solar_style` | `strahlen` | Style du solaire thermique : `strahlen` (rayons et vague de cellules), `funkeln` (réchauffement et scintillement), `roehren` (capteur à tubes) |
 | `demo` | `false` | Valeurs d'exemple pour essayer |
 
 ### Entités
@@ -175,8 +178,8 @@ Tous les champs sont facultatifs. Un champ sans entité est masqué sur la carte
 | `hk3_water, hk4_water` | Température d'eau circuits 3, 4 | entité propre, °C |
 | `hk3_pump, hk4_pump` | Pompe circuits 3, 4 en marche | interrupteur ou capteur propre |
 | `hk3_switch, hk4_switch` | Circuits 3, 4 marche et arrêt | interrupteur propre, facultatif |
-| `kamin_temp` | Température du poêle | entité propre, °C |
-| `kamin_pump` | Pompe du poêle en marche | interrupteur ou capteur propre |
+| `kamin_temp` | Température du poêle | entité propre, °C ; poêle seul : TOP47 |
+| `kamin_pump` | Pompe du poêle en marche | interrupteur ou capteur propre ; poêle seul : OPT5 |
 | `solar_temp` | Température solaire thermique | TOP47 |
 | `solar_pump` | Pompe solaire en marche | OPT5 |
 | **Eau chaude** | | |
