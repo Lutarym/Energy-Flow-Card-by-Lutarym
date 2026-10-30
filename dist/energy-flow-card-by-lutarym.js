@@ -139,7 +139,7 @@ const PLATZ_PFAD = {
 };
 
 /** Reihenfolge, in der freie Plaetze an Verbraucher ohne Wunsch gehen. */
-const PLATZ_FOLGE = ["links_oben", "links_unten", "rechts_oben", "rechts", "rechts_unten", "oben", "unten"];
+const PLATZ_FOLGE = ["links_oben", "oben", "rechts_oben", "rechts", "unten", "rechts_unten", "links_unten"];
 
 /* ------------------------------------------------------------------ *
  *  Kleine Symbole in den Kreisen, 24er Raster um den Nullpunkt
@@ -930,15 +930,15 @@ class LutarymEnergyFlowCard extends HTMLElement {
   /**
    * Verteilt Waermepumpe, Wallbox und Verbraucher auf die Plaetze.
    * Zuerst bekommt jeder seinen gewaehlten Platz, dann Waermepumpe und
-   * Wallbox ihren Standard oben und unten, der Rest fuellt die freien
+   * Wallbox ihren Standard links unten und rechts unten, der Rest fuellt die freien
    * Plaetze der Reihe nach. Ergebnis: Platzname je Kennung.
    */
   _platzierung() {
     const c = this._config;
     const e = c.entities || {};
     const liste = [];
-    if (c.demo || e.heatpump) liste.push({ id: "wp", wunsch: c.heatpump_position, standard: "oben" });
-    if (c.demo || e.wallbox) liste.push({ id: "wb", wunsch: c.wallbox_position, standard: "unten" });
+    if (c.demo || e.heatpump) liste.push({ id: "wp", wunsch: c.heatpump_position, standard: "links_unten" });
+    if (c.demo || e.wallbox) liste.push({ id: "wb", wunsch: c.wallbox_position, standard: "rechts_unten" });
     this._verbraucherListe().forEach((v, i) => liste.push({ id: `ex${i}`, wunsch: v.platz }));
     const belegt = new Set();
     const ergebnis = {};

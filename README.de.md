@@ -108,7 +108,7 @@ Symbole: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, 
 | `min_flow` | `10` | Kleinere Leistung in W gilt als Stillstand |
 | `grid_invert` | `false` | Vorzeichen von `grid` umkehren |
 | `battery_invert` | `false` | Vorzeichen von `battery` umkehren |
-| `heatpump_position`, `wallbox_position`, `position` eines Verbrauchers | automatisch | Platz rund um das Haus: `links_oben`, `oben`, `rechts_oben`, `rechts`, `rechts_unten`, `unten`, `links_unten`. Ohne Auswahl steht die Wärmepumpe oben, die Wallbox unten, die Verbraucher füllen die freien Plätze |
+| `heatpump_position`, `wallbox_position`, `position` eines Verbrauchers | automatisch | Platz rund um das Haus: `links_oben`, `oben`, `rechts_oben`, `rechts`, `rechts_unten`, `unten`, `links_unten`. Ohne Auswahl steht die Wärmepumpe links unten, die Wallbox rechts unten, die Verbraucher füllen die freien Plätze |
 | `name_pv`, `name_grid`, `name_battery`, `name_home`, `name_heatpump`, `name_wallbox` | | Eigene Namen, leer nimmt die Kartensprache |
 
 ## Lizenz

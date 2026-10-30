@@ -108,7 +108,7 @@ consumers:
 | `min_flow` | `10` | これより小さい電力（W）は停止とみなす |
 | `grid_invert` | `false` | `grid` の符号を反転 |
 | `battery_invert` | `false` | `battery` の符号を反転 |
-| `heatpump_position`、`wallbox_position`、機器の `position` | 自動 | 家庭の周りの配置：`links_oben`, `oben`, `rechts_oben`, `rechts`, `rechts_unten`, `unten`, `links_unten`（左上、上、右上、右、右下、下、左下）。未選択の場合、ヒートポンプは上、EV充電器は下、その他の機器は空いている配置を順に使用 |
+| `heatpump_position`、`wallbox_position`、機器の `position` | 自動 | 家庭の周りの配置：`links_oben`, `oben`, `rechts_oben`, `rechts`, `rechts_unten`, `unten`, `links_unten`（左上、上、右上、右、右下、下、左下）。未選択の場合、ヒートポンプは左下、EV充電器は右下、その他の機器は空いている配置を順に使用 |
 | `name_pv`, `name_grid`, `name_battery`, `name_home`, `name_heatpump`, `name_wallbox` | | 独自の名前、空欄の場合はカードの言語を使用 |
 
 ## ライセンス

@@ -108,7 +108,7 @@ Symboles : `steckdose` (prise), `waschmaschine` (lave-linge), `spuelmaschine` (l
 | `min_flow` | `10` | Une puissance plus faible en W compte comme arrêt |
 | `grid_invert` | `false` | Inverser le signe de `grid` |
 | `battery_invert` | `false` | Inverser le signe de `battery` |
-| `heatpump_position`, `wallbox_position`, `position` d'un consommateur | automatique | Emplacement autour de la maison : `links_oben`, `oben`, `rechts_oben`, `rechts`, `rechts_unten`, `unten`, `links_unten` (en haut à gauche, en haut, en haut à droite, à droite, en bas à droite, en bas, en bas à gauche). Sans choix, la pompe à chaleur va en haut, la borne en bas et les consommateurs remplissent les emplacements libres |
+| `heatpump_position`, `wallbox_position`, `position` d'un consommateur | automatique | Emplacement autour de la maison : `links_oben`, `oben`, `rechts_oben`, `rechts`, `rechts_unten`, `unten`, `links_unten` (en haut à gauche, en haut, en haut à droite, à droite, en bas à droite, en bas, en bas à gauche). Sans choix, la pompe à chaleur va en bas à gauche, la borne en bas à droite et les consommateurs remplissent les emplacements libres |
 | `name_pv`, `name_grid`, `name_battery`, `name_home`, `name_heatpump`, `name_wallbox` | | Noms personnalisés, vide utilise la langue de la carte |
 
 ## Licence

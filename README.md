@@ -108,7 +108,7 @@ Symbols: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, 
 | `min_flow` | `10` | Lower power in W counts as idle |
 | `grid_invert` | `false` | Invert the sign of `grid` |
 | `battery_invert` | `false` | Invert the sign of `battery` |
-| `heatpump_position`, `wallbox_position`, `position` of a consumer | automatic | Place around the home: `links_oben`, `oben`, `rechts_oben`, `rechts`, `rechts_unten`, `unten`, `links_unten` (top left, top, top right, right, bottom right, bottom, bottom left). Without a choice the heat pump goes to the top, the wallbox to the bottom and the consumers fill the free places |
+| `heatpump_position`, `wallbox_position`, `position` of a consumer | automatic | Place around the home: `links_oben`, `oben`, `rechts_oben`, `rechts`, `rechts_unten`, `unten`, `links_unten` (top left, top, top right, right, bottom right, bottom, bottom left). Without a choice the heat pump goes to the bottom left, the wallbox to the bottom right and the consumers fill the free places |
 | `name_pv`, `name_grid`, `name_battery`, `name_home`, `name_heatpump`, `name_wallbox` | | Own names, empty uses the card language |
 
 ## License
