@@ -18,7 +18,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-const CARD_VERSION = "1.3.2";
+const CARD_VERSION = "1.3.3";
 const CARD_TAG = "energy-flow-card-by-lutarym";
 const EDITOR_TAG = "energy-flow-card-by-lutarym-editor";
 
@@ -1274,6 +1274,8 @@ class LutarymEnergyFlowCard extends HTMLElement {
         <path class="pipe-shell" d="${pfad}"/>
         <path class="pipe" id="pipe-${id}" d="${pfad}"/>
         <path class="flow-glow" id="fg-${id}" d="${pfad}"/>
+        <path class="flow-glow" id="fg2-${id}" d="${pfad}"/>
+        <path class="flow-glow" id="fg3-${id}" d="${pfad}"/>
         <path class="flow" id="f-${id}" d="${pfad}"/>
         <path class="flow" id="f2-${id}" d="${pfad}"/>
         <path class="flow" id="f3-${id}" d="${pfad}"/>
@@ -1562,42 +1564,54 @@ class LutarymEnergyFlowCard extends HTMLElement {
     const farbe = mix.haupt || NEUTRAL;
     const aktiv = w !== null && w !== undefined && w > (Number(c.min_flow) || 0);
     const spuren = [this._el(`f-${id}`), this._el(`f2-${id}`), this._el(`f3-${id}`)];
-    const fg = this._el(`fg-${id}`);
+    // Jede Strichspur hat ihren eigenen Schein in ihrer Farbe. So bleibt
+    // auch ein kleiner Anteil kraeftig und wird nicht von der Hauptfarbe
+    // ueberstrahlt.
+    const scheine = [this._el(`fg-${id}`), this._el(`fg2-${id}`), this._el(`fg3-${id}`)];
     const rohr = this._el(`pipe-${id}`);
     if (!spuren[0]) return;
-    if (fg) fg.classList.toggle("is-on", aktiv);
-    if (rohr) {
-      rohr.style.stroke = aktiv ? farbe : "";
-      rohr.classList.toggle("is-on", aktiv);
-    }
     const dash = this._stil().dash;
     const teile = (mix.teile || []).slice(0, 3);
     const gemischt = aktiv && teile.length > 1;
+    if (rohr) {
+      // Bei gemischtem Strom bleibt das Rohr neutral, die Farben zeigen
+      // allein die Striche.
+      rohr.style.stroke = aktiv && !gemischt ? farbe : "";
+      rohr.classList.toggle("is-on", aktiv && !gemischt);
+    }
     const folge = gemischt ? strichFolge(teile) : null;
     const laufend = [];
     spuren.forEach((el, k) => {
+      const schein = scheine[k];
       if (!el) return;
       let an = aktiv && (k === 0 || (gemischt && k < teile.length));
       let basis = 0;
+      let muster = "";
       if (an && gemischt) {
         const m = spurMuster(folge, k, dash);
         if (!m.muster) an = false;
         else {
-          el.style.strokeDasharray = m.muster;
+          muster = m.muster;
           basis = m.basis;
         }
-      } else {
-        el.style.strokeDasharray = "";
       }
+      el.style.strokeDasharray = muster;
       el.classList.toggle("is-on", an);
+      if (schein) {
+        schein.style.strokeDasharray = muster;
+        schein.classList.toggle("is-on", an);
+      }
       if (!an) return;
-      el.style.stroke = gemischt ? teile[k].farbe : farbe;
-      laufend.push({ el, basis });
-      if (!c.animate) el.setAttribute("stroke-dashoffset", basis.toFixed(1));
+      const spurFarbe = gemischt ? teile[k].farbe : farbe;
+      el.style.stroke = spurFarbe;
+      if (schein) schein.style.stroke = spurFarbe;
+      laufend.push({ el, schein, basis });
+      if (!c.animate) {
+        el.setAttribute("stroke-dashoffset", basis.toFixed(1));
+        if (schein) schein.setAttribute("stroke-dashoffset", basis.toFixed(1));
+      }
     });
     if (aktiv) {
-      if (fg) fg.style.stroke = farbe;
-      if (!c.animate && fg) fg.setAttribute("stroke-dashoffset", "0");
       const p = anteil(w, c.max_power);
       const alt = this._fluss.get(id);
       this._fluss.set(id, {
@@ -1605,7 +1619,6 @@ class LutarymEnergyFlowCard extends HTMLElement {
         versatz: alt ? alt.versatz : 0,
         rueck: Boolean(rueck),
         spuren: laufend,
-        glow: fg,
       });
     } else {
       this._fluss.delete(id);
@@ -2041,17 +2054,20 @@ class LutarymEnergyFlowCard extends HTMLElement {
     const spanne = periode * MISCH_STRICHE * 100;
     this._fluss.forEach((s) => {
       s.versatz = (s.versatz + (s.rueck ? 1 : -1) * s.tempo * dt) % spanne;
-      if (s.glow) s.glow.setAttribute("stroke-dashoffset", s.versatz.toFixed(1));
-      s.spuren.forEach((sp) => sp.el.setAttribute("stroke-dashoffset", (s.versatz + sp.basis).toFixed(1)));
+      s.spuren.forEach((sp) => {
+        const wert = (s.versatz + sp.basis).toFixed(1);
+        sp.el.setAttribute("stroke-dashoffset", wert);
+        if (sp.schein) sp.schein.setAttribute("stroke-dashoffset", wert);
+      });
     });
 
     // Zusatzeffekte einzelner Stile auf den laufenden Leitungen.
     if (stil.atmen || stil.zucken) {
       this._fluss.forEach((s, id) => {
-        const glow = s.glow;
-        if (stil.atmen && glow) {
+        if (stil.atmen) {
           const welle = 0.5 - 0.5 * Math.cos(((zeit % 1.6) / 1.6) * Math.PI * 2);
-          glow.style.opacity = (0.08 + stil.schein[1] * 1.6 * welle).toFixed(2);
+          const wert = (0.08 + stil.schein[1] * 1.6 * welle).toFixed(2);
+          s.spuren.forEach((sp) => { if (sp.schein) sp.schein.style.opacity = wert; });
         }
         if (stil.zucken) {
           // Pseudozufall aus Zeit und Leitung, damit nicht alle gleich flackern.

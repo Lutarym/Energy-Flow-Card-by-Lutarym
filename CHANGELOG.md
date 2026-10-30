@@ -4,6 +4,10 @@
 
 ## English
 
+### v1.3.3
+
+- Fix: on lines with mixed power every colour has its own glow, small shares no longer look grey
+
 ### v1.3.2
 
 - Fix: name fields in the editor show the name that is drawn. A cleared field really removes the label, for example HOME
@@ -45,6 +49,10 @@ First release.
 - Languages: English, German, French and Japanese
 
 ## Deutsch
+
+### v1.3.3
+
+- Behoben: Auf Leitungen mit gemischtem Strom hat jede Farbe ihren eigenen Schein, kleine Anteile wirken nicht mehr grau
 
 ### v1.3.2
 
@@ -88,6 +96,10 @@ Erste Veröffentlichung.
 
 ## Français
 
+### v1.3.3
+
+- Corrigé : sur les lignes au courant mixte, chaque couleur a sa propre lueur, les petites parts ne paraissent plus grises
+
 ### v1.3.2
 
 - Corrigé : les champs de nom de l'éditeur montrent le nom affiché. Un champ vidé retire vraiment l'étiquette, par exemple MAISON
@@ -129,6 +141,10 @@ Première version.
 - Langues : anglais, allemand, français et japonais
 
 ## 日本語
+
+### v1.3.3
+
+- 修正：複数の電源が混在するラインでは各色に専用の光彩を付け、小さな割合が灰色に見えなくなりました
 
 ### v1.3.2
 

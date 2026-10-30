@@ -1,6 +1,6 @@
 # Energy Flow Card by Lutarym
 
-Version 1.3.2
+Version 1.3.3
 
 [English](README.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · **日本語**
 
