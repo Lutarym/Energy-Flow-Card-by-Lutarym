@@ -1,6 +1,6 @@
 # Energy Flow Card by Lutarym
 
-Version 1.4.0
+Version 1.4.3
 
 [English](README.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · **日本語**
 
@@ -88,7 +88,7 @@ consumers:
 
 `consumers` の下に最大7件、それぞれ `entity`、`name`、`icon`、任意で `color`（`#RRGGBB` または `[r, g, b]`）、`position`。エンティティが利用できない場合も機器は表示されたままで、`取得不可` と表示されます。
 
-`entity` の代わりにエリア（`area`）を指定できます。カードはそのエリアのすべての電力センサー（W または kW）を合計します：エリアに配置されたセンサーと、デバイスがエリアにあるセンサー。`exclude` に記載したセンサーは除外されます（例：二重に数えられる合計センサー）。利用できないセンサーはスキップされます。円の名前はエリア名です。両方を設定した場合は `entity` が優先されます。
+`entity` の代わりにエリア（`area`）を指定できます。カードはそのエリアのすべての電力センサー（W または kW）を合計します：エリアに配置されたセンサーと、デバイスがエリアにあるセンサー。`exclude` に記載したセンサーは除外されます（例：二重に数えられる合計センサー）。利用できないセンサーはスキップされます。円の名前はエリア名です。両方を設定した場合は `entity` が優先されます。エディターのエリア欄のすぐ下に、そのエリアの各電力センサーと値が一覧表示され（除外したものは取り消し線）、二重計上を簡単に見つけられます。
 
 ```yaml
 consumers:
@@ -120,7 +120,7 @@ consumers:
 | `min_flow` | `10` | これより小さい電力（W）は停止とみなす |
 | `grid_invert` | `false` | `grid` の符号を反転 |
 | `battery_invert` | `false` | `battery` の符号を反転 |
-| `billing_date` | | 請求日 `YYYY-MM-DD`。この日から買電量と現在までの電気代を表示 |
+| `billing_date` | | 請求日 `YYYY-MM-DD`。日と月のみ使用：毎年この日に新しい請求期間が始まります。現在の期間の開始からの買電量と電気代を表示 |
 | `price_per_kwh` | `0` | 電力量料金（ct/kWh） |
 | `base_fee_month` | `0` | 月額基本料金、日割りで計算 |
 | `heatpump_position`、`wallbox_position`、機器の `position` | 自動 | 家庭の周りの配置：`links_oben`, `oben`, `rechts_oben`, `rechts`, `rechts_unten`, `unten`, `links_unten`（左上、上、右上、右、右下、下、左下）。未選択の場合、ヒートポンプは上、EV充電器は下、その他の機器は空いている配置を順に使用 |

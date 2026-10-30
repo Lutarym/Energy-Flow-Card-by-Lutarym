@@ -4,6 +4,18 @@
 
 ## English
 
+### v1.4.3
+
+- Billing date repeats every year: only day and month count, on this day a new billing period starts
+
+### v1.4.2
+
+- Editor: every consumer has its own block, the power sensors of a chosen area are listed directly under the area field, excluded ones struck through
+
+### v1.4.1
+
+- The editor lists every sensor counted for an area with its value, to find and exclude double counting
+
 ### v1.4.0
 
 - New: a consumer can be an area instead of an entity, the card adds up all power sensors of the area, with exclusions
@@ -53,6 +65,18 @@ First release.
 - Languages: English, German, French and Japanese
 
 ## Deutsch
+
+### v1.4.3
+
+- Abrechnungsdatum wiederholt sich jedes Jahr: Nur Tag und Monat zählen, an diesem Tag beginnt ein neuer Abrechnungszeitraum
+
+### v1.4.2
+
+- Editor: Jeder Verbraucher hat einen eigenen Block, die Leistungssensoren des gewählten Raums stehen direkt unter dem Feld Raum, ausgeschlossene durchgestrichen
+
+### v1.4.1
+
+- Der Editor listet jeden Sensor, der für einen Raum gezählt wird, mit seinem Wert, um doppelt Gezähltes zu finden und auszuschließen
 
 ### v1.4.0
 
@@ -104,6 +128,18 @@ Erste Veröffentlichung.
 
 ## Français
 
+### v1.4.3
+
+- La date de facturation se répète chaque année : seuls le jour et le mois comptent, une nouvelle période commence ce jour-là
+
+### v1.4.2
+
+- Éditeur : chaque consommateur a son propre bloc, les capteurs de puissance de la pièce choisie sont listés juste sous le champ pièce, les exclus barrés
+
+### v1.4.1
+
+- L'éditeur liste chaque capteur compté pour une pièce avec sa valeur, pour trouver et exclure un double comptage
+
 ### v1.4.0
 
 - Nouveau : un consommateur peut être une pièce au lieu d'une entité, la carte additionne tous les capteurs de puissance de la pièce, avec exclusions
@@ -153,6 +189,18 @@ Première version.
 - Langues : anglais, allemand, français et japonais
 
 ## 日本語
+
+### v1.4.3
+
+- 請求日は毎年繰り返し：日と月のみ使用し、その日に新しい請求期間が始まります
+
+### v1.4.2
+
+- エディター：機器ごとに専用ブロック、選択したエリアの電力センサーをエリア欄のすぐ下に一覧表示（除外したものは取り消し線）
+
+### v1.4.1
+
+- エディターにエリアで集計される各センサーと値を一覧表示し、二重計上を見つけて除外可能に
 
 ### v1.4.0
 

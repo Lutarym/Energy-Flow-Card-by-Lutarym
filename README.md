@@ -1,6 +1,6 @@
 # Energy Flow Card by Lutarym
 
-Version 1.4.0
+Version 1.4.3
 
 **English** · [Deutsch](README.de.md) · [Français](README.fr.md) · [日本語](README.ja.md)
 
@@ -88,7 +88,7 @@ consumers:
 
 Up to seven entries under `consumers`, each with `entity`, `name`, `icon` and optional `color` (`#RRGGBB` or `[r, g, b]`) and `position`. A consumer stays visible when its entity is unavailable and shows `n/a`.
 
-Instead of `entity` a consumer can use an `area`. The card then adds up all power sensors (W or kW) of that area: sensors placed in the area and sensors whose device is in the area. Sensors listed under `exclude` are left out, for example a total sensor that would count twice. Unavailable sensors are skipped. Name of the circle: the area name. If both are set, `entity` wins.
+Instead of `entity` a consumer can use an `area`. The card then adds up all power sensors (W or kW) of that area: sensors placed in the area and sensors whose device is in the area. Sensors listed under `exclude` are left out, for example a total sensor that would count twice. Unavailable sensors are skipped. Name of the circle: the area name. If both are set, `entity` wins. Directly under the area field the editor lists every power sensor of the area with its value, excluded ones struck through, so double counting is easy to spot.
 
 ```yaml
 consumers:
@@ -120,7 +120,7 @@ Symbols: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, 
 | `min_flow` | `10` | Lower power in W counts as idle |
 | `grid_invert` | `false` | Invert the sign of `grid` |
 | `battery_invert` | `false` | Invert the sign of `battery` |
-| `billing_date` | | Billing date `YYYY-MM-DD`. From this day the card shows grid import and cost to date |
+| `billing_date` | | Billing date `YYYY-MM-DD`. Only day and month count: every year on this day a new billing period starts. The card shows grid import and cost since the start of the current period |
 | `price_per_kwh` | `0` | Energy price in ct/kWh |
 | `base_fee_month` | `0` | Base fee per month, counted pro rata per day |
 | `heatpump_position`, `wallbox_position`, `position` of a consumer | automatic | Place around the home: `links_oben`, `oben`, `rechts_oben`, `rechts`, `rechts_unten`, `unten`, `links_unten` (top left, top, top right, right, bottom right, bottom, bottom left). Without a choice the heat pump goes to the top, the wallbox to the bottom and the consumers fill the free places |

@@ -18,7 +18,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-const CARD_VERSION = "1.4.0";
+const CARD_VERSION = "1.4.3";
 const CARD_TAG = "energy-flow-card-by-lutarym";
 const EDITOR_TAG = "energy-flow-card-by-lutarym-editor";
 
@@ -377,6 +377,56 @@ const DEFAULT_CONFIG = {
 };
 
 const MAX_VERBRAUCHER = 7;
+
+/**
+ * Sucht alle Leistungssensoren eines Raums: Sensoren, die selbst im Raum
+ * stehen, und Sensoren ohne eigenen Raum, deren Geraet im Raum steht.
+ * Ausgeblendete, Diagnose- und ausgeschlossene Sensoren fallen weg.
+ */
+function raumSensorenSuchen(hass, raum, ohne) {
+  if (!hass || !hass.entities || !raum) return [];
+  const geraete = hass.devices || {};
+  const aus = new Set(ohne || []);
+  return Object.values(hass.entities).filter((e) => {
+    if (!e || !e.entity_id || !e.entity_id.startsWith("sensor.") || aus.has(e.entity_id)) return false;
+    if (e.hidden || e.entity_category) return false;
+    const imRaum = e.area_id
+      ? e.area_id === raum
+      : Boolean(e.device_id && geraete[e.device_id] && geraete[e.device_id].area_id === raum);
+    if (!imRaum) return false;
+    const st = hass.states[e.entity_id];
+    if (!st || !st.attributes) return false;
+    const einheit = String(st.attributes.unit_of_measurement || "").trim().toLowerCase();
+    return st.attributes.device_class === "power" || ["w", "kw", "mw"].includes(einheit);
+  }).map((e) => e.entity_id);
+}
+
+/**
+ * Beginn des laufenden Abrechnungszeitraums. Nur Tag und Monat zaehlen,
+ * jedes Jahr an diesem Tag beginnt ein neuer Zeitraum. Liegt der Tag in
+ * diesem Jahr noch in der Zukunft, gilt der Tag im Vorjahr. Den 29.02.
+ * gibt es nicht jedes Jahr, dann gilt der letzte Tag des Monats.
+ */
+function abrechnungsBeginn(monat, tag, heute) {
+  if (!(monat >= 1 && monat <= 12 && tag >= 1 && tag <= 31)) return null;
+  const am = (jahr) => {
+    const letzter = new Date(jahr, monat, 0).getDate();
+    return new Date(jahr, monat - 1, Math.min(tag, letzter));
+  };
+  const diesesJahr = am(heute.getFullYear());
+  return diesesJahr <= heute ? diesesJahr : am(heute.getFullYear() - 1);
+}
+
+/** Leistung eines Zustands in Watt, oder null. */
+function wattAus(st) {
+  if (!st) return null;
+  let v = parseFloat(st.state);
+  if (Number.isNaN(v)) return null;
+  const einheit = String((st.attributes && st.attributes.unit_of_measurement) || "").trim().toLowerCase();
+  if (einheit === "kw") v *= 1000;
+  else if (einheit === "mw") v *= 1000000;
+  return v;
+}
 
 /** Namensfelder und der Text, der ohne eigenen Namen in der Grafik steht. */
 const NAME_STANDARD = {
@@ -890,20 +940,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
     }
     const cache = this._raumCache.listen;
     if (cache[schluessel]) return cache[schluessel];
-    const geraete = hass.devices || {};
-    const aus = new Set(ohne || []);
-    const liste = Object.values(hass.entities).filter((e) => {
-      if (!e || !e.entity_id || !e.entity_id.startsWith("sensor.") || aus.has(e.entity_id)) return false;
-      if (e.hidden || e.entity_category) return false;
-      const imRaum = e.area_id
-        ? e.area_id === raum
-        : Boolean(e.device_id && geraete[e.device_id] && geraete[e.device_id].area_id === raum);
-      if (!imRaum) return false;
-      const st = hass.states[e.entity_id];
-      if (!st || !st.attributes) return false;
-      const einheit = String(st.attributes.unit_of_measurement || "").trim().toLowerCase();
-      return st.attributes.device_class === "power" || ["w", "kw", "mw"].includes(einheit);
-    }).map((e) => e.entity_id);
+    const liste = raumSensorenSuchen(hass, raum, ohne);
     if (liste.length) cache[schluessel] = liste;
     return liste;
   }
@@ -1407,8 +1444,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
     if (c.demo) return new Date(new Date().getFullYear(), 0, 1);
     const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(c.billing_date || ""));
     if (!m) return null;
-    const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-    return Number.isNaN(d.getTime()) || d > new Date() ? null : d;
+    return abrechnungsBeginn(Number(m[2]), Number(m[3]), new Date());
   }
 
   /**
@@ -2332,6 +2368,11 @@ const EDITOR_TEXTE = {
     c_entity: "Verbraucher {n}: Leistung",
     c_area: "Verbraucher {n}: oder Raum (Summe aller Leistungssensoren)",
     c_exclude: "Verbraucher {n}: im Raum ausschließen",
+    c_area_info: "Gezählt im Raum",
+    ausgeschlossen: "ausgeschlossen",
+    c_titel: "Verbraucher {n}",
+    c_area_leer: "Keine Leistungssensoren in diesem Raum gefunden",
+    nv_kurz: "n. v.",
     c_name: "Verbraucher {n}: Name",
     c_icon: "Verbraucher {n}: Symbol",
     c_color: "Verbraucher {n}: Farbe",
@@ -2349,7 +2390,7 @@ const EDITOR_TEXTE = {
     sek_abr: "Abrechnung",
     grid_import_energy: "Netzbezug Zählerstand (kWh, Energie)",
     grid_cost: "Kosten Netzbezug (optional, Kosten-Sensor bei dynamischem Tarif)",
-    billing_date: "Abrechnungsdatum",
+    billing_date: "Abrechnungsdatum (jedes Jahr, Tag und Monat zählen)",
     price_per_kwh: "Arbeitspreis (ct/kWh)",
     base_fee_month: "Grundgebühr pro Monat",
     lade: "Editor wird geladen …",
@@ -2416,6 +2457,11 @@ const EDITOR_TEXTE = {
     c_entity: "Consumer {n}: power",
     c_area: "Consumer {n}: or area (sum of all power sensors)",
     c_exclude: "Consumer {n}: exclude in area",
+    c_area_info: "Counted in this area",
+    ausgeschlossen: "excluded",
+    c_titel: "Consumer {n}",
+    c_area_leer: "No power sensors found in this area",
+    nv_kurz: "n/a",
     c_name: "Consumer {n}: name",
     c_icon: "Consumer {n}: symbol",
     c_color: "Consumer {n}: colour",
@@ -2433,7 +2479,7 @@ const EDITOR_TEXTE = {
     sek_abr: "Billing",
     grid_import_energy: "Grid import meter (kWh, energy)",
     grid_cost: "Grid import cost (optional, cost sensor for a dynamic tariff)",
-    billing_date: "Billing date",
+    billing_date: "Billing date (every year, day and month count)",
     price_per_kwh: "Energy price (ct/kWh)",
     base_fee_month: "Base fee per month",
     lade: "Loading editor …",
@@ -2500,6 +2546,11 @@ const EDITOR_TEXTE = {
     c_entity: "Consommateur {n} : puissance",
     c_area: "Consommateur {n} : ou pièce (somme de tous les capteurs de puissance)",
     c_exclude: "Consommateur {n} : exclure dans la pièce",
+    c_area_info: "Compté dans la pièce",
+    ausgeschlossen: "exclu",
+    c_titel: "Consommateur {n}",
+    c_area_leer: "Aucun capteur de puissance trouvé dans cette pièce",
+    nv_kurz: "n/d",
     c_name: "Consommateur {n} : nom",
     c_icon: "Consommateur {n} : symbole",
     c_color: "Consommateur {n} : couleur",
@@ -2517,7 +2568,7 @@ const EDITOR_TEXTE = {
     sek_abr: "Facturation",
     grid_import_energy: "Compteur de soutirage (kWh, énergie)",
     grid_cost: "Coût du soutirage (optionnel, capteur de coût pour un tarif dynamique)",
-    billing_date: "Date de facturation",
+    billing_date: "Date de facturation (chaque année, jour et mois comptent)",
     price_per_kwh: "Prix du kWh (ct/kWh)",
     base_fee_month: "Abonnement par mois",
     lade: "Chargement de l'éditeur …",
@@ -2584,6 +2635,11 @@ const EDITOR_TEXTE = {
     c_entity: "機器 {n}：電力",
     c_area: "機器 {n}：またはエリア（全電力センサーの合計）",
     c_exclude: "機器 {n}：エリア内で除外",
+    c_area_info: "このエリアの集計",
+    ausgeschlossen: "除外",
+    c_titel: "機器 {n}",
+    c_area_leer: "このエリアに電力センサーが見つかりません",
+    nv_kurz: "取得不可",
     c_name: "機器 {n}：名前",
     c_icon: "機器 {n}：アイコン",
     c_color: "機器 {n}：色",
@@ -2601,7 +2657,7 @@ const EDITOR_TEXTE = {
     sek_abr: "請求",
     grid_import_energy: "買電量メーター（kWh、エネルギー）",
     grid_cost: "買電コスト（任意、動的料金用のコストセンサー）",
-    billing_date: "請求日",
+    billing_date: "請求日（毎年、日と月のみ使用）",
     price_per_kwh: "電力量料金（ct/kWh）",
     base_fee_month: "月額基本料金",
     lade: "エディターを読み込み中 …",
@@ -2651,6 +2707,46 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
     this._hass = hass;
     this._formulare.forEach((f) => { f.el.hass = hass; });
     if (!this._built) this._aufbauen();
+    else this._raumInfoZeigen();
+  }
+
+  /**
+   * Zeigt unter dem Raum eines Verbrauchers alle Leistungssensoren, die
+   * dem Raum zugewiesen sind, mit Wert. Ausgeschlossene stehen durchgestrichen
+   * dabei, damit man sieht, was gezaehlt wird und was nicht.
+   */
+  _raumInfoZeigen() {
+    if (!this._raumInfos || !this._hass || !this._config) return;
+    const hass = this._hass;
+    const sp = this._sp();
+    const ort = { de: "de-DE", en: "en-US", fr: "fr-FR", ja: "ja-JP" }[sp] || "en-US";
+    const zahl = new Intl.NumberFormat(ort, { maximumFractionDigits: 2 });
+    const w = (x) => (x === null ? this._et("nv_kurz")
+      : Math.abs(x) >= 1000 ? `${zahl.format(x / 1000)} kW` : `${zahl.format(Math.round(x))} W`);
+    const verbraucher = this._config.consumers || [];
+    this._raumInfos.forEach((box, i) => {
+      if (!box) return;
+      const v = verbraucher[i];
+      let html = "";
+      if (v && v.area && !v.entity) {
+        const ohne = new Set(Array.isArray(v.exclude) ? v.exclude : []);
+        const alle = raumSensorenSuchen(hass, v.area, []);
+        let summe = 0;
+        const zeilen = alle.map((id) => {
+          const st = hass.states[id];
+          const x = wattAus(st);
+          const aus = ohne.has(id);
+          if (!aus && x !== null) summe += x;
+          const name = (st && st.attributes && st.attributes.friendly_name) || id;
+          return `<li class="${aus ? "aus" : ""}">${escapeHtml(name)} <span>${escapeHtml(id)}</span>: <b>${w(x)}</b>${aus ? ` <em>${escapeHtml(this._et("ausgeschlossen"))}</em>` : ""}</li>`;
+        });
+        html = alle.length
+          ? `<div class="raum-kopf">${escapeHtml(this._et("c_area_info"))}: <b>${w(summe)}</b></div><ul>${zeilen.join("")}</ul>`
+          : `<div class="raum-kopf">${escapeHtml(this._et("c_area_leer"))}</div>`;
+      }
+      if (box.innerHTML !== html) box.innerHTML = html;
+      box.hidden = !html;
+    });
   }
 
   /** Sorgt dafuer, dass ha-form geladen ist, auch wenn noch keine andere Karte es nachgeladen hat. */
@@ -2815,12 +2911,9 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
     kopf.textContent = `Energy Flow Card by Lutarym · v${CARD_VERSION}`;
     wurzel.appendChild(kopf);
     this._formulare = [];
-    this._abschnitte().forEach((ab) => {
-      const det = document.createElement("details");
-      if (ab.offen) det.open = true;
-      const sum = document.createElement("summary");
-      sum.textContent = this._et(ab.titel);
-      det.appendChild(sum);
+    this._raumInfos = [];
+    // Erzeugt ein Formular fuer einen Teil der Felder eines Abschnitts.
+    const formular = (ab) => {
       const form = document.createElement("ha-form");
       form.hass = this._hass;
       form.schema = ab.felder.map((f) => ({ name: f.name, selector: f.selector }));
@@ -2830,17 +2923,51 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
         ev.stopPropagation();
         this._uebernehmen(ab, ev.detail.value || {});
       });
+      this._formulare.push({ ab, el: form });
+      return form;
+    };
+    this._abschnitte().forEach((ab) => {
+      const det = document.createElement("details");
+      if (ab.offen) det.open = true;
+      const sum = document.createElement("summary");
+      sum.textContent = this._et(ab.titel);
+      det.appendChild(sum);
       const huelle = document.createElement("div");
       huelle.className = "inhalt";
-      huelle.appendChild(form);
+      if (ab.titel === "sek_ex") {
+        // Je Verbraucher ein eigener Block. Direkt unter Entitaet und Raum
+        // stehen alle Leistungssensoren des gewaehlten Raums.
+        for (let i = 0; i < MAX_VERBRAUCHER; i++) {
+          const felder = ab.felder.filter((f) => f.idx === i);
+          const oben = felder.filter((f) => f.feld === "entity" || f.feld === "area");
+          const rest = felder.filter((f) => f.feld !== "entity" && f.feld !== "area");
+          const block = document.createElement("div");
+          block.className = "verbraucher";
+          const titel = document.createElement("div");
+          titel.className = "verbraucher-titel";
+          titel.textContent = this._et("c_titel").replace("{n}", String(i + 1));
+          block.appendChild(titel);
+          block.appendChild(formular({ titel: ab.titel, felder: oben }));
+          const info = document.createElement("div");
+          info.className = "raum-info";
+          info.hidden = true;
+          block.appendChild(info);
+          this._raumInfos[i] = info;
+          block.appendChild(formular({ titel: ab.titel, felder: rest }));
+          huelle.appendChild(block);
+        }
+      } else {
+        huelle.appendChild(formular(ab));
+      }
       det.appendChild(huelle);
       wurzel.appendChild(det);
-      this._formulare.push({ ab, el: form });
     });
+    this._raumInfoZeigen();
   }
 
   _abgleich() {
     this._formulare.forEach(({ ab, el }) => { el.data = this._daten(ab); });
+    this._raumInfoZeigen();
   }
 
   /** Werte eines Abschnitts in die Konfiguration schreiben. Leere Felder fallen weg. */
@@ -2916,6 +3043,16 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
       summary::before { content: "▸"; display: inline-block; width: 18px; transition: transform 150ms ease; }
       details[open] > summary::before { transform: rotate(90deg); }
       .inhalt { padding: 0 14px 14px; }
+      .verbraucher { border-top: 1px solid var(--divider-color, #33415A); padding-top: 10px; margin-top: 10px; }
+      .verbraucher:first-child { border-top: none; margin-top: 0; }
+      .verbraucher-titel { font-weight: 600; margin-bottom: 6px; }
+      .raum-info { margin: 4px 0 12px; padding: 8px 10px; font-size: 13px; color: var(--secondary-text-color);
+        border-left: 3px solid var(--primary-color, #3D8BFF); background: rgba(127, 127, 127, 0.08); border-radius: 4px; }
+      .raum-info .raum-kopf { color: var(--primary-text-color); }
+      .raum-info li.aus { text-decoration: line-through; opacity: 0.6; }
+      .raum-info em { text-decoration: none; font-style: normal; }
+      .raum-info ul { margin: 4px 0 0; padding-left: 18px; }
+      .raum-info span { opacity: 0.7; font-size: 12px; }
     `;
   }
 }

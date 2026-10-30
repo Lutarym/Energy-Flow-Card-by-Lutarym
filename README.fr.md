@@ -1,6 +1,6 @@
 # Energy Flow Card by Lutarym
 
-Version 1.4.0
+Version 1.4.3
 
 [English](README.md) · [Deutsch](README.de.md) · **Français** · [日本語](README.ja.md)
 
@@ -88,7 +88,7 @@ consumers:
 
 Jusqu'à sept entrées sous `consumers`, chacune avec `entity`, `name`, `icon` et en option `color` (`#RRGGBB` ou `[r, g, b]`) et `position`. Un consommateur reste visible quand son entité est indisponible et affiche alors `n/d`.
 
-Au lieu de `entity`, un consommateur peut utiliser une pièce (`area`). La carte additionne alors tous les capteurs de puissance (W ou kW) de la pièce : capteurs placés dans la pièce et capteurs dont l'appareil est dans la pièce. Les capteurs listés sous `exclude` sont ignorés, par exemple un capteur total qui compterait deux fois. Les capteurs indisponibles sont sautés. Nom du cercle : le nom de la pièce. Si les deux sont définis, `entity` l'emporte.
+Au lieu de `entity`, un consommateur peut utiliser une pièce (`area`). La carte additionne alors tous les capteurs de puissance (W ou kW) de la pièce : capteurs placés dans la pièce et capteurs dont l'appareil est dans la pièce. Les capteurs listés sous `exclude` sont ignorés, par exemple un capteur total qui compterait deux fois. Les capteurs indisponibles sont sautés. Nom du cercle : le nom de la pièce. Si les deux sont définis, `entity` l'emporte. Juste sous le champ pièce, l'éditeur liste chaque capteur de puissance de la pièce avec sa valeur, les exclus barrés, ce qui permet de repérer facilement un double comptage.
 
 ```yaml
 consumers:
@@ -120,7 +120,7 @@ Symboles : `steckdose` (prise), `waschmaschine` (lave-linge), `spuelmaschine` (l
 | `min_flow` | `10` | Une puissance plus faible en W compte comme arrêt |
 | `grid_invert` | `false` | Inverser le signe de `grid` |
 | `battery_invert` | `false` | Inverser le signe de `battery` |
-| `billing_date` | | Date de facturation `AAAA-MM-JJ`. À partir de ce jour, la carte montre le soutirage et le coût à ce jour |
+| `billing_date` | | Date de facturation `AAAA-MM-JJ`. Seuls le jour et le mois comptent : chaque année à cette date commence une nouvelle période. La carte montre le soutirage et le coût depuis le début de la période en cours |
 | `price_per_kwh` | `0` | Prix du kWh en ct/kWh |
 | `base_fee_month` | `0` | Abonnement par mois, compté au prorata des jours |
 | `heatpump_position`, `wallbox_position`, `position` d'un consommateur | automatique | Emplacement autour de la maison : `links_oben`, `oben`, `rechts_oben`, `rechts`, `rechts_unten`, `unten`, `links_unten` (en haut à gauche, en haut, en haut à droite, à droite, en bas à droite, en bas, en bas à gauche). Sans choix, la pompe à chaleur va en haut, la borne en bas et les consommateurs remplissent les emplacements libres |

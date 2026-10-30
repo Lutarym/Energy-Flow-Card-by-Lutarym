@@ -1,6 +1,6 @@
 # Energy Flow Card by Lutarym
 
-Version 1.4.0
+Version 1.4.3
 
 [English](README.md) · **Deutsch** · [Français](README.fr.md) · [日本語](README.ja.md)
 
@@ -88,7 +88,7 @@ consumers:
 
 Bis zu sieben Einträge unter `consumers`, jeweils mit `entity`, `name`, `icon` und optional `color` (`#RRGGBB` oder `[r, g, b]`) und `position`. Ein Verbraucher bleibt sichtbar, wenn seine Entität ausfällt, und zeigt dann `n. v.`.
 
-Statt `entity` kann ein Verbraucher einen Raum (`area`) nutzen. Die Karte zählt dann alle Leistungssensoren (W oder kW) des Raums zusammen: Sensoren, die im Raum stehen, und Sensoren, deren Gerät im Raum steht. Sensoren unter `exclude` werden ausgelassen, zum Beispiel ein Gesamtsensor, der sonst doppelt zählt. Nicht verfügbare Sensoren werden übersprungen. Name des Kreises: der Name des Raums. Sind beide gesetzt, gilt `entity`.
+Statt `entity` kann ein Verbraucher einen Raum (`area`) nutzen. Die Karte zählt dann alle Leistungssensoren (W oder kW) des Raums zusammen: Sensoren, die im Raum stehen, und Sensoren, deren Gerät im Raum steht. Sensoren unter `exclude` werden ausgelassen, zum Beispiel ein Gesamtsensor, der sonst doppelt zählt. Nicht verfügbare Sensoren werden übersprungen. Name des Kreises: der Name des Raums. Sind beide gesetzt, gilt `entity`. Direkt unter dem Feld Raum listet der Editor jeden Leistungssensor des Raums mit seinem Wert, ausgeschlossene durchgestrichen. So ist doppelt Gezähltes leicht zu finden.
 
 ```yaml
 consumers:
@@ -120,7 +120,7 @@ Symbole: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, 
 | `min_flow` | `10` | Kleinere Leistung in W gilt als Stillstand |
 | `grid_invert` | `false` | Vorzeichen von `grid` umkehren |
 | `battery_invert` | `false` | Vorzeichen von `battery` umkehren |
-| `billing_date` | | Abrechnungsdatum `JJJJ-MM-TT`. Ab diesem Tag zeigt die Karte Netzbezug und Kosten bis heute |
+| `billing_date` | | Abrechnungsdatum `JJJJ-MM-TT`. Nur Tag und Monat zählen: Jedes Jahr an diesem Tag beginnt ein neuer Abrechnungszeitraum. Die Karte zeigt Netzbezug und Kosten seit Beginn des laufenden Zeitraums |
 | `price_per_kwh` | `0` | Arbeitspreis in ct/kWh |
 | `base_fee_month` | `0` | Grundgebühr pro Monat, wird tageweise anteilig gerechnet |
 | `heatpump_position`, `wallbox_position`, `position` eines Verbrauchers | automatisch | Platz rund um das Haus: `links_oben`, `oben`, `rechts_oben`, `rechts`, `rechts_unten`, `unten`, `links_unten`. Ohne Auswahl steht die Wärmepumpe oben, die Wallbox unten, die Verbraucher füllen die freien Plätze |
