@@ -1,6 +1,6 @@
 # Energy Flow Card by Lutarym
 
-Version 1.2.3
+Version 1.3.0
 
 [English](README.md) · [Deutsch](README.de.md) · **Français** · [日本語](README.ja.md)
 
@@ -80,6 +80,8 @@ consumers:
 | `home` | Consommation de la maison. Vide : calculée à partir du solaire, du réseau et de la batterie |
 | `heatpump` | Puissance de la pompe à chaleur |
 | `wallbox` | Puissance de charge de la borne |
+| `grid_import_energy` | Compteur de soutirage en kWh (énergie, cumulé). Montre le soutirage depuis la date de facturation |
+| `grid_cost` | Capteur de coût optionnel du soutirage, par exemple du tableau de bord énergie avec un tarif dynamique. Remplace kWh fois prix |
 | `pv_secondary`, `grid_secondary`, `battery_secondary`, `home_secondary`, `heatpump_secondary`, `wallbox_secondary` | Ligne supplémentaire optionnelle, n'importe quelle entité |
 
 ### Autres consommateurs
@@ -108,8 +110,11 @@ Symboles : `steckdose` (prise), `waschmaschine` (lave-linge), `spuelmaschine` (l
 | `min_flow` | `10` | Une puissance plus faible en W compte comme arrêt |
 | `grid_invert` | `false` | Inverser le signe de `grid` |
 | `battery_invert` | `false` | Inverser le signe de `battery` |
+| `billing_date` | | Date de facturation `AAAA-MM-JJ`. À partir de ce jour, la carte montre le soutirage et le coût à ce jour |
+| `price_per_kwh` | `0` | Prix du kWh en ct/kWh |
+| `base_fee_month` | `0` | Abonnement par mois, compté au prorata des jours |
 | `heatpump_position`, `wallbox_position`, `position` d'un consommateur | automatique | Emplacement autour de la maison : `links_oben`, `oben`, `rechts_oben`, `rechts`, `rechts_unten`, `unten`, `links_unten` (en haut à gauche, en haut, en haut à droite, à droite, en bas à droite, en bas, en bas à gauche). Sans choix, la pompe à chaleur va en haut, la borne en bas et les consommateurs remplissent les emplacements libres |
-| `name_pv`, `name_grid`, `name_battery`, `name_home`, `name_heatpump`, `name_wallbox` | | Noms personnalisés, vide utilise la langue de la carte |
+| `name_pv`, `name_grid`, `name_battery`, `name_home`, `name_heatpump`, `name_wallbox` | | Noms personnalisés. Non défini : nom dans la langue de la carte. Défini vide (`""`) : pas d'étiquette |
 
 ## Licence
 

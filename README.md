@@ -1,6 +1,6 @@
 # Energy Flow Card by Lutarym
 
-Version 1.2.3
+Version 1.3.0
 
 **English** · [Deutsch](README.de.md) · [Français](README.fr.md) · [日本語](README.ja.md)
 
@@ -80,6 +80,8 @@ consumers:
 | `home` | Home consumption. Empty: calculated from solar, grid and battery |
 | `heatpump` | Heat pump power |
 | `wallbox` | Wallbox charging power |
+| `grid_import_energy` | Grid import meter in kWh (energy, total). Shows the grid import since the billing date |
+| `grid_cost` | Optional cost sensor of the grid import, for example from the energy dashboard with a dynamic tariff. Replaces kWh times energy price |
 | `pv_secondary`, `grid_secondary`, `battery_secondary`, `home_secondary`, `heatpump_secondary`, `wallbox_secondary` | Optional extra line, any entity |
 
 ### Further consumers
@@ -108,8 +110,11 @@ Symbols: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, 
 | `min_flow` | `10` | Lower power in W counts as idle |
 | `grid_invert` | `false` | Invert the sign of `grid` |
 | `battery_invert` | `false` | Invert the sign of `battery` |
+| `billing_date` | | Billing date `YYYY-MM-DD`. From this day the card shows grid import and cost to date |
+| `price_per_kwh` | `0` | Energy price in ct/kWh |
+| `base_fee_month` | `0` | Base fee per month, counted pro rata per day |
 | `heatpump_position`, `wallbox_position`, `position` of a consumer | automatic | Place around the home: `links_oben`, `oben`, `rechts_oben`, `rechts`, `rechts_unten`, `unten`, `links_unten` (top left, top, top right, right, bottom right, bottom, bottom left). Without a choice the heat pump goes to the top, the wallbox to the bottom and the consumers fill the free places |
-| `name_pv`, `name_grid`, `name_battery`, `name_home`, `name_heatpump`, `name_wallbox` | | Own names, empty uses the card language |
+| `name_pv`, `name_grid`, `name_battery`, `name_home`, `name_heatpump`, `name_wallbox` | | Own names. Not set: name in the card language. Set to empty (`""`): no label |
 
 ## License
 

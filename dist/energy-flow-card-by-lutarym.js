@@ -18,7 +18,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-const CARD_VERSION = "1.2.3";
+const CARD_VERSION = "1.3.0";
 const CARD_TAG = "energy-flow-card-by-lutarym";
 const EDITOR_TAG = "energy-flow-card-by-lutarym-editor";
 
@@ -187,6 +187,15 @@ const PLATZ_PFAD = {
   rechts_unten: `M520 ${260 + D} H 625 V 430 H 730`,
 };
 
+/**
+ * Infofelder der Abrechnung auf dem freien Platz zwischen Netz und Haus,
+ * eines ueber und eines unter den Leitungen von PV, Netz und Akku.
+ */
+const ABR = { X: 310, OBEN: 192, UNTEN: 328, HOEHE: 52, BREITE_MIN: 148, BREITE_MAX: 176 };
+// Abrechnungswerte neu holen nach so vielen Millisekunden.
+const ABR_INTERVALL = 10 * 60 * 1000;
+const ORTE = { de: "de-DE", en: "en-US", fr: "fr-FR", ja: "ja-JP" };
+
 /** Reihenfolge, in der freie Plaetze an Verbraucher ohne Wunsch gehen. */
 const PLATZ_FOLGE = ["links_oben", "links_unten", "rechts_oben", "rechts", "rechts_unten", "oben", "unten"];
 
@@ -253,6 +262,8 @@ const TEXTE = {
     hinweis: "Noch keine Entitäten zugeordnet. Bitte im Editor zuordnen oder den Demomodus einschalten.",
     demo: "Demomodus: Beispielwerte, keine echten Daten.",
     beschreibung: "Animierte Energieflusskarte mit PV, Netz, Akku, Haus, Wärmepumpe, Wallbox und weiteren Verbrauchern.",
+    bezug_seit: "Bezug seit {d}",
+    kosten_bis: "Kosten bis heute",
   },
   en: {
     pv: "Solar",
@@ -268,6 +279,8 @@ const TEXTE = {
     hinweis: "No entities assigned yet. Please assign them in the editor or switch on demo mode.",
     demo: "Demo mode: sample values, no real data.",
     beschreibung: "Animated energy flow card with solar, grid, battery, home, heat pump, wallbox and further consumers.",
+    bezug_seit: "Import since {d}",
+    kosten_bis: "Cost to date",
   },
   fr: {
     pv: "Solaire",
@@ -283,6 +296,8 @@ const TEXTE = {
     hinweis: "Aucune entité attribuée. Attribuez-les dans l'éditeur ou activez le mode démo.",
     demo: "Mode démo : valeurs d'exemple, pas de données réelles.",
     beschreibung: "Carte animée du flux d'énergie : solaire, réseau, batterie, maison, pompe à chaleur, borne et autres consommateurs.",
+    bezug_seit: "Soutiré depuis {d}",
+    kosten_bis: "Coût à ce jour",
   },
   ja: {
     pv: "太陽光",
@@ -298,6 +313,8 @@ const TEXTE = {
     hinweis: "エンティティが未設定です。エディターで設定するか、デモモードを有効にしてください。",
     demo: "デモモード：サンプル値です。実際のデータではありません。",
     beschreibung: "太陽光、系統、蓄電池、家庭、ヒートポンプ、EV充電器、その他の機器のエネルギーフローを表示するアニメーションカード。",
+    bezug_seit: "{d} 以降の買電",
+    kosten_bis: "現在までの電気代",
   },
 };
 
@@ -350,6 +367,11 @@ const DEFAULT_CONFIG = {
   min_flow: 10,
   grid_invert: false,
   battery_invert: false,
+  // Abrechnung: Stichtag (JJJJ-MM-TT), Arbeitspreis in ct/kWh und
+  // Grundgebuehr pro Monat. Leer oder 0 heisst: nicht anzeigen.
+  billing_date: "",
+  price_per_kwh: 0,
+  base_fee_month: 0,
   entities: {},
   consumers: [],
 };
@@ -761,6 +783,8 @@ class LutarymEnergyFlowCard extends HTMLElement {
   /** Eigener Name gewinnt, sonst der Name in der Kartensprache. */
   _name(schluessel, standard) {
     const eigen = this._config && this._config[`name_${schluessel}`];
+    // Bewusst leer eingetragen heisst: keine Beschriftung.
+    if (eigen === "") return "";
     return eigen ? String(eigen) : this._t(standard || schluessel);
   }
 
@@ -1288,6 +1312,150 @@ class LutarymEnergyFlowCard extends HTMLElement {
       <text class="sub sub2" id="${id}-s3" y="${yS2}" text-anchor="middle"></text>`;
   }
 
+  /** Rahmen mit Beschriftung und Wert, Breite passt sich dem Text an. */
+  _infoFeld(id, y) {
+    return `
+      <g id="${id}" class="info" display="none">
+        <rect id="${id}-rahmen" class="info-rahmen" x="${ABR.X - ABR.BREITE_MIN / 2}" y="${y - ABR.HOEHE / 2}"
+              width="${ABR.BREITE_MIN}" height="${ABR.HOEHE}" rx="12"/>
+        <text class="info-titel" id="${id}-titel" x="${ABR.X}" y="${y - 6}" text-anchor="middle"></text>
+        <text class="info-wert" id="${id}-wert" x="${ABR.X}" y="${y + 18}" text-anchor="middle"></text>
+      </g>`;
+  }
+
+  /* -------------------- Abrechnung -------------------- */
+
+  /** Ob Netzbezug seit dem Abrechnungsdatum gezeigt werden soll. */
+  _hatAbrechnung() {
+    const c = this._config;
+    if (c.demo) return true;
+    return Boolean(c.entities && c.entities.grid_import_energy && this._abrStart());
+  }
+
+  /** Beginn des Abrechnungszeitraums, Mitternacht in Ortszeit, oder null. */
+  _abrStart() {
+    const c = this._config;
+    if (c.demo) return new Date(new Date().getFullYear(), 0, 1);
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(c.billing_date || ""));
+    if (!m) return null;
+    const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    return Number.isNaN(d.getTime()) || d > new Date() ? null : d;
+  }
+
+  /**
+   * Aenderung einer Statistik seit start, etwa die kWh eines Zaehlers.
+   * Zuerst die Abfrage fuer einen Zeitraum, sonst die Tageswerte summiert.
+   */
+  async _statistikAenderung(id, start, einheiten) {
+    const hass = this._hass;
+    if (!hass || !hass.callWS) return null;
+    const ende = new Date().toISOString();
+    const zusatz = einheiten ? { units: einheiten } : {};
+    try {
+      const r = await hass.callWS({
+        type: "recorder/statistic_during_period", statistic_id: id,
+        fixed_period: { start_time: start.toISOString(), end_time: ende }, types: ["change"], ...zusatz,
+      });
+      if (r && typeof r.change === "number") return r.change;
+    } catch (err) {
+      // Aeltere Versionen kennen die Abfrage nicht, dann die Tageswerte.
+    }
+    try {
+      const r = await hass.callWS({
+        type: "recorder/statistics_during_period", start_time: start.toISOString(), end_time: ende,
+        statistic_ids: [id], period: "day", types: ["change"], ...zusatz,
+      });
+      const liste = r && r[id];
+      if (Array.isArray(liste) && liste.length) {
+        return liste.reduce((a, x) => a + (Number(x.change) || 0), 0);
+      }
+    } catch (err) {
+      // Keine Statistik vorhanden.
+    }
+    return null;
+  }
+
+  /** Holt die Abrechnungswerte, hoechstens alle ABR_INTERVALL. */
+  _abrechnungPruefen() {
+    const c = this._config;
+    if (!this._hatAbrechnung()) { this._abr = null; return; }
+    const start = this._abrStart();
+    const e = c.entities || {};
+    const schluessel = c.demo ? "demo" : [e.grid_import_energy, e.grid_cost || "", start.toISOString()].join("|");
+    const jetzt = Date.now();
+    if (this._abr && this._abr.schluessel === schluessel &&
+        (this._abr.laedt || jetzt - this._abr.zeit < ABR_INTERVALL)) return;
+    if (c.demo) {
+      this._abr = { schluessel, zeit: jetzt, kwh: 2345.6, kosten: null };
+      return;
+    }
+    const abr = { schluessel, zeit: jetzt, laedt: true, kwh: this._abr ? this._abr.kwh : null,
+      kosten: this._abr ? this._abr.kosten : null };
+    this._abr = abr;
+    Promise.all([
+      this._statistikAenderung(e.grid_import_energy, start, { energy: "kWh" }),
+      e.grid_cost ? this._statistikAenderung(e.grid_cost, start) : Promise.resolve(null),
+    ]).then(([kwh, kosten]) => {
+      if (this._abr !== abr) return;
+      abr.kwh = kwh;
+      abr.kosten = kosten;
+      abr.laedt = false;
+      abr.zeit = Date.now();
+      this._abrechnungZeigen();
+    });
+  }
+
+  /** Schreibt Netzbezug und Kosten seit dem Abrechnungsdatum in die Felder. */
+  _abrechnungZeigen() {
+    if (!this._hatAbrechnung() || !this._el("abr-bezug")) return;
+    const c = this._config;
+    const sp = this._sp();
+    const ort = ORTE[sp] || "en-US";
+    const start = this._abrStart();
+    const abr = this._abr || {};
+    const datum = new Intl.DateTimeFormat(ort, { day: "2-digit", month: "2-digit", year: "numeric" }).format(start);
+    // Netzbezug
+    const kwh = typeof abr.kwh === "number" ? abr.kwh : null;
+    this._infoSetzen("abr-bezug", this._t("bezug_seit").replace("{d}", datum),
+      kwh === null ? "" : `${new Intl.NumberFormat(ort, { maximumFractionDigits: kwh < 100 ? 1 : 0 }).format(kwh)} kWh`);
+    // Kosten: Kosten-Sensor oder kWh mal Arbeitspreis, dazu die Grundgebuehr
+    // anteilig fuer die Tage seit dem Abrechnungsdatum.
+    const preis = c.demo ? 28 : Number(c.price_per_kwh) || 0;
+    const grund = c.demo ? 12 : Number(c.base_fee_month) || 0;
+    let arbeit = null;
+    if (typeof abr.kosten === "number") arbeit = abr.kosten;
+    else if (kwh !== null && preis > 0) arbeit = (kwh * preis) / 100;
+    const tage = Math.max(0, (Date.now() - start.getTime()) / 86400000);
+    const anteil = grund > 0 ? (grund * 12 * tage) / 365 : 0;
+    const summe = arbeit === null && !anteil ? null : (arbeit || 0) + anteil;
+    const waehrung = (this._hass && this._hass.config && this._hass.config.currency) || "EUR";
+    let text = "";
+    if (summe !== null) {
+      try {
+        text = new Intl.NumberFormat(ort, { style: "currency", currency: waehrung }).format(summe);
+      } catch (err) {
+        text = `${this._zahlText(summe, 2)} ${waehrung}`;
+      }
+    }
+    this._infoSetzen("abr-kosten", this._t("kosten_bis"), text);
+  }
+
+  _infoSetzen(id, titel, wert) {
+    this._zeige(id, Boolean(wert));
+    if (!wert) return;
+    this._setText(`${id}-titel`, titel);
+    this._setText(`${id}-wert`, wert);
+    // Rahmen an den laengeren Text anpassen.
+    const f = this._fs();
+    const breite = clamp(Math.max(textBreite(titel) * 6.2, textBreite(wert) * 10.5) * f + 24,
+      ABR.BREITE_MIN, ABR.BREITE_MAX);
+    const rahmen = this._el(`${id}-rahmen`);
+    if (rahmen) {
+      rahmen.setAttribute("x", (ABR.X - breite / 2).toFixed(1));
+      rahmen.setAttribute("width", breite.toFixed(1));
+    }
+  }
+
   /** Ring aus Teilbogen, fuer Akkustand und die Herkunft des Hausstroms. */
   _bogen(id, farbe) {
     return `<circle id="${id}" class="bogen" r="${G.R}" stroke="${farbe}"
@@ -1345,6 +1513,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
         entity: this._config.entities.home ? "home" : "",
         icon: ICON.haus,
         inhalt: `${this._bogen("seg-pv", FARBE.pv)}${this._bogen("seg-akku", FARBE.akku)}${this._bogen("seg-netz", FARBE.netz)}${this._werte("haus")}` })}
+      ${this._hatAbrechnung() ? `${this._infoFeld("abr-bezug", ABR.OBEN)}${this._infoFeld("abr-kosten", ABR.UNTEN)}` : ""}
       </g>
       ${this._zeigtSaeule() ? `
       <g id="akku-saeule" class="saeule" data-entity="${this._config.entities.battery_soc ? "battery_soc" : "battery"}">
@@ -1638,6 +1807,8 @@ class LutarymEnergyFlowCard extends HTMLElement {
 
     ["pv", "akku", "netz", "haus", "wp", "wb"].forEach((id) => this._zentriere(id));
     (m.verbraucher || []).forEach((_, i) => this._zentriere(`ex${i}`));
+    this._abrechnungPruefen();
+    this._abrechnungZeigen();
     this._passeRahmen();
   }
 
@@ -1969,6 +2140,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
       .flow-glow.is-on { opacity: ${stil.schein[1]}; }
       .flow:not(.is-on), .flow-glow:not(.is-on) { opacity: 0 !important; }
       .knotenpunkt { fill: #111821; stroke: #2E3848; stroke-width: 2; }
+      .info-rahmen { fill: #0F151D; stroke: #2A3445; stroke-width: 1.5; }
 
       .node[data-entity], .node[data-entity-id] { cursor: pointer; }
       .node-bg { fill: #111821; stroke: #2A3445; stroke-width: 2; }
@@ -1985,7 +2157,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
       .label-bg { fill: #0F151D; }
       /* Klare Schrift: hell auf dunkel, kraeftig, mit dunkler Kontur, damit
          sie auch ueber Leuchtschein und Leitungen gut lesbar bleibt. */
-      .node-label, .value, .value-k, .sub {
+      .node-label, .value, .value-k, .sub, .info-titel, .info-wert {
         font-family: Roboto, "Segoe UI", system-ui, -apple-system,
           "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", Meiryo, sans-serif;
         paint-order: stroke; stroke: #0B1017; stroke-linejoin: round;
@@ -1999,7 +2171,9 @@ class LutarymEnergyFlowCard extends HTMLElement {
         color: #55657F; fill: none; stroke: currentColor; stroke-width: 1.8;
         stroke-linecap: round; stroke-linejoin: round; transition: color 500ms ease;
       }
-      .value, .value-k, .sub { font-variant-numeric: tabular-nums; }
+      .value, .value-k, .sub, .info-wert { font-variant-numeric: tabular-nums; }
+      .info-titel { fill: #C4CEDB; font-size: ${px(11)}; font-weight: 600; stroke-width: 3px; }
+      .info-wert { fill: #FFFFFF; font-size: ${px(18)}; font-weight: 700; stroke-width: 4px; }
       .value {
         fill: #FFFFFF; font-size: ${px(19)}; font-weight: 700; stroke-width: 4px;
         transition: fill 500ms ease;
@@ -2087,6 +2261,12 @@ const EDITOR_TEXTE = {
     sek_wp: "Wärmepumpe",
     sek_wb: "Wallbox",
     sek_ex: "Weitere Verbraucher",
+    sek_abr: "Abrechnung",
+    grid_import_energy: "Netzbezug Zählerstand (kWh, Energie)",
+    grid_cost: "Kosten Netzbezug (optional, Kosten-Sensor bei dynamischem Tarif)",
+    billing_date: "Abrechnungsdatum",
+    price_per_kwh: "Arbeitspreis (ct/kWh)",
+    base_fee_month: "Grundgebühr pro Monat",
     lade: "Editor wird geladen …",
     auto: "Automatisch",
     sym: {
@@ -2163,6 +2343,12 @@ const EDITOR_TEXTE = {
     sek_wp: "Heat pump",
     sek_wb: "Wallbox",
     sek_ex: "Further consumers",
+    sek_abr: "Billing",
+    grid_import_energy: "Grid import meter (kWh, energy)",
+    grid_cost: "Grid import cost (optional, cost sensor for a dynamic tariff)",
+    billing_date: "Billing date",
+    price_per_kwh: "Energy price (ct/kWh)",
+    base_fee_month: "Base fee per month",
     lade: "Loading editor …",
     auto: "Automatic",
     sym: {
@@ -2239,6 +2425,12 @@ const EDITOR_TEXTE = {
     sek_wp: "Pompe à chaleur",
     sek_wb: "Borne",
     sek_ex: "Autres consommateurs",
+    sek_abr: "Facturation",
+    grid_import_energy: "Compteur de soutirage (kWh, énergie)",
+    grid_cost: "Coût du soutirage (optionnel, capteur de coût pour un tarif dynamique)",
+    billing_date: "Date de facturation",
+    price_per_kwh: "Prix du kWh (ct/kWh)",
+    base_fee_month: "Abonnement par mois",
     lade: "Chargement de l'éditeur …",
     auto: "Automatique",
     sym: {
@@ -2315,6 +2507,12 @@ const EDITOR_TEXTE = {
     sek_wp: "ヒートポンプ",
     sek_wb: "EV充電器",
     sek_ex: "その他の機器",
+    sek_abr: "請求",
+    grid_import_energy: "買電量メーター（kWh、エネルギー）",
+    grid_cost: "買電コスト（任意、動的料金用のコストセンサー）",
+    billing_date: "請求日",
+    price_per_kwh: "電力量料金（ct/kWh）",
+    base_fee_month: "月額基本料金",
     lade: "エディターを読み込み中 …",
     auto: "自動",
     sym: {
@@ -2468,6 +2666,13 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
         { name: "name_wallbox", selector: TEXT },
       ] },
       { titel: "sek_ex", felder: verbraucher },
+      { titel: "sek_abr", felder: [
+        { name: "grid_import_energy", ort: "e", selector: { entity: { domain: "sensor", device_class: "energy" } } },
+        { name: "billing_date", selector: { date: {} } },
+        { name: "price_per_kwh", selector: { number: { min: 0, max: 200, step: 0.01, mode: "box", unit_of_measurement: "ct/kWh" } } },
+        { name: "base_fee_month", selector: { number: { min: 0, max: 500, step: 0.01, mode: "box" } } },
+        { name: "grid_cost", ort: "e", selector: { entity: { domain: "sensor", device_class: "monetary" } } },
+      ] },
     ];
   }
 
@@ -2543,6 +2748,12 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
       // "Automatisch" beim Platz heisst: nichts festlegen.
       if (/position$/.test(f.name) && v === "auto") v = "";
       const leer = v === undefined || v === null || v === "";
+      // Ein geleertes Namensfeld bleibt als "" stehen: keine Beschriftung.
+      // Je nach Version liefert das Formular "" oder gar keinen Wert.
+      if (/^name_/.test(f.name) && (v === "" || (v === undefined && this._config[f.name] !== undefined))) {
+        c[f.name] = "";
+        return;
+      }
       if (f.ort === "e") {
         if (leer) delete c.entities[f.name];
         else c.entities[f.name] = v;

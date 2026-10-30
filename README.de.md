@@ -1,6 +1,6 @@
 # Energy Flow Card by Lutarym
 
-Version 1.2.3
+Version 1.3.0
 
 [English](README.md) · **Deutsch** · [Français](README.fr.md) · [日本語](README.ja.md)
 
@@ -80,6 +80,8 @@ consumers:
 | `home` | Hausverbrauch. Leer: wird aus PV, Netz und Akku berechnet |
 | `heatpump` | Leistung der Wärmepumpe |
 | `wallbox` | Ladeleistung der Wallbox |
+| `grid_import_energy` | Zählerstand Netzbezug in kWh (Energie, fortlaufend). Zeigt den Netzbezug seit dem Abrechnungsdatum |
+| `grid_cost` | Optionaler Kosten-Sensor des Netzbezugs, zum Beispiel aus dem Energie-Dashboard bei dynamischem Tarif. Ersetzt kWh mal Arbeitspreis |
 | `pv_secondary`, `grid_secondary`, `battery_secondary`, `home_secondary`, `heatpump_secondary`, `wallbox_secondary` | Optionale Zusatzzeile, beliebige Entität |
 
 ### Weitere Verbraucher
@@ -108,8 +110,11 @@ Symbole: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, 
 | `min_flow` | `10` | Kleinere Leistung in W gilt als Stillstand |
 | `grid_invert` | `false` | Vorzeichen von `grid` umkehren |
 | `battery_invert` | `false` | Vorzeichen von `battery` umkehren |
+| `billing_date` | | Abrechnungsdatum `JJJJ-MM-TT`. Ab diesem Tag zeigt die Karte Netzbezug und Kosten bis heute |
+| `price_per_kwh` | `0` | Arbeitspreis in ct/kWh |
+| `base_fee_month` | `0` | Grundgebühr pro Monat, wird tageweise anteilig gerechnet |
 | `heatpump_position`, `wallbox_position`, `position` eines Verbrauchers | automatisch | Platz rund um das Haus: `links_oben`, `oben`, `rechts_oben`, `rechts`, `rechts_unten`, `unten`, `links_unten`. Ohne Auswahl steht die Wärmepumpe oben, die Wallbox unten, die Verbraucher füllen die freien Plätze |
-| `name_pv`, `name_grid`, `name_battery`, `name_home`, `name_heatpump`, `name_wallbox` | | Eigene Namen, leer nimmt die Kartensprache |
+| `name_pv`, `name_grid`, `name_battery`, `name_home`, `name_heatpump`, `name_wallbox` | | Eigene Namen. Nicht gesetzt: Name in der Kartensprache. Leer gesetzt (`""`): keine Beschriftung |
 
 ## Lizenz
 

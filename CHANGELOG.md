@@ -4,6 +4,11 @@
 
 ## English
 
+### v1.3.0
+
+- New: grid import and cost since the billing date, cost from energy price plus base fee or from a cost sensor
+- Home label can be hidden: set its name to empty
+
 ### v1.2.3
 
 - Lines with power from several sources show every colour in proportion, also small shares, for example every sixth dash yellow at 1/6 solar and 5/6 grid
@@ -32,6 +37,11 @@ First release.
 - Languages: English, German, French and Japanese
 
 ## Deutsch
+
+### v1.3.0
+
+- Neu: Netzbezug und Kosten seit dem Abrechnungsdatum, Kosten aus Arbeitspreis plus Grundgebühr oder aus einem Kosten-Sensor
+- Beschriftung des Hauses ausblendbar: Namen leer setzen
 
 ### v1.2.3
 
@@ -62,6 +72,11 @@ Erste Veröffentlichung.
 
 ## Français
 
+### v1.3.0
+
+- Nouveau : soutirage et coût depuis la date de facturation, coût à partir du prix du kWh plus l'abonnement ou d'un capteur de coût
+- Étiquette de la maison masquable : définir son nom vide
+
 ### v1.2.3
 
 - Les lignes alimentées par plusieurs sources montrent chaque couleur en proportion, même les petites parts, par exemple un trait sur six jaune pour 1/6 de solaire et 5/6 de réseau
@@ -90,6 +105,11 @@ Première version.
 - Langues : anglais, allemand, français et japonais
 
 ## 日本語
+
+### v1.3.0
+
+- 新機能：請求日以降の買電量と電気代（電力量料金＋基本料金、またはコストセンサー）
+- 家庭のラベルを非表示可能：名前を空に設定
 
 ### v1.2.3
 
