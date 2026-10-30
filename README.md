@@ -1,6 +1,6 @@
 # Energy Flow Card by Lutarym
 
-Version 1.4.3
+Version 1.5.0
 
 **English** · [Deutsch](README.de.md) · [Français](README.fr.md) · [日本語](README.ja.md)
 
@@ -104,6 +104,7 @@ Symbols: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, 
 | Option | Default | Meaning |
 |---|---|---|
 | `language` | `auto` | `auto`, `en`, `de`, `fr` or `ja` |
+| `theme` | `dunkel` | Colour scheme: `auto`, `dunkel`, `hell`, `ha`, `oled`, `mitternacht`, `graphit`. `auto` follows light or dark mode of Home Assistant, `ha` uses the colours of the active Home Assistant theme, `oled` pure black for OLED wall tablets, `mitternacht` midnight blue, `graphit` neutral grey. The colours of solar, grid, battery and devices stay the same in every scheme |
 | `demo` | `false` | Sample values for trying out |
 | `show_names` | `true` | Show the names above and below the circles |
 | `animate` | `true` | Show the animation |

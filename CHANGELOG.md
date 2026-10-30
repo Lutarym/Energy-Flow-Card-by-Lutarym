@@ -4,6 +4,10 @@
 
 ## English
 
+### v1.5.0
+
+- New: colour schemes automatic, dark, light, Home Assistant theme, OLED black, midnight blue and graphite
+
 ### v1.4.3
 
 - Billing date repeats every year: only day and month count, on this day a new billing period starts
@@ -65,6 +69,10 @@ First release.
 - Languages: English, German, French and Japanese
 
 ## Deutsch
+
+### v1.5.0
+
+- Neu: Farbschemas Automatisch, Dunkel, Hell, Home Assistant Design, OLED Schwarz, Mitternachtsblau und Graphit
 
 ### v1.4.3
 
@@ -128,6 +136,10 @@ Erste Veröffentlichung.
 
 ## Français
 
+### v1.5.0
+
+- Nouveau : jeux de couleurs automatique, sombre, clair, thème Home Assistant, noir OLED, bleu nuit et graphite
+
 ### v1.4.3
 
 - La date de facturation se répète chaque année : seuls le jour et le mois comptent, une nouvelle période commence ce jour-là
@@ -189,6 +201,10 @@ Première version.
 - Langues : anglais, allemand, français et japonais
 
 ## 日本語
+
+### v1.5.0
+
+- 新機能：配色（自動、ダーク、ライト、Home Assistant テーマ、OLED ブラック、ミッドナイトブルー、グラファイト）
 
 ### v1.4.3
 

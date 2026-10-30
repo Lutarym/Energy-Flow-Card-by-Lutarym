@@ -1,6 +1,6 @@
 # Energy Flow Card by Lutarym
 
-Version 1.4.3
+Version 1.5.0
 
 [English](README.md) · **Deutsch** · [Français](README.fr.md) · [日本語](README.ja.md)
 
@@ -104,6 +104,7 @@ Symbole: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, 
 | Option | Standard | Bedeutung |
 |---|---|---|
 | `language` | `auto` | `auto`, `en`, `de`, `fr` oder `ja` |
+| `theme` | `dunkel` | Farbschema: `auto`, `dunkel`, `hell`, `ha`, `oled`, `mitternacht`, `graphit`. `auto` folgt hell oder dunkel von Home Assistant, `ha` nimmt die Farben des aktiven Home Assistant Designs, `oled` reines Schwarz für OLED-Wandtablets, `mitternacht` Mitternachtsblau, `graphit` neutrales Grau. Die Farben von PV, Netz, Akku und Geräten bleiben in jedem Schema gleich |
 | `demo` | `false` | Beispielwerte zum Ausprobieren |
 | `show_names` | `true` | Namen über und unter den Kreisen anzeigen |
 | `animate` | `true` | Animation zeigen |

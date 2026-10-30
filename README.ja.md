@@ -1,6 +1,6 @@
 # Energy Flow Card by Lutarym
 
-Version 1.4.3
+Version 1.5.0
 
 [English](README.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · **日本語**
 
@@ -104,6 +104,7 @@ consumers:
 | オプション | 既定値 | 意味 |
 |---|---|---|
 | `language` | `auto` | `auto`、`en`、`de`、`fr`、`ja` |
+| `theme` | `dunkel` | 配色：`auto`, `dunkel`, `hell`, `ha`, `oled`, `mitternacht`, `graphit`。`auto` は Home Assistant のライト／ダークに追従、`ha` は有効な Home Assistant テーマの色を使用、`oled` は OLED 壁掛けタブレット向けの純黒、`mitternacht` はミッドナイトブルー、`graphit` はニュートラルグレー。太陽光、系統、蓄電池、機器の色はどの配色でも同じです |
 | `demo` | `false` | 試用のためのサンプル値 |
 | `show_names` | `true` | 円の上下に名前を表示 |
 | `animate` | `true` | アニメーションを表示 |

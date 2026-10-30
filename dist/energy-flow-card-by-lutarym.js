@@ -18,7 +18,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-const CARD_VERSION = "1.4.3";
+const CARD_VERSION = "1.5.0";
 const CARD_TAG = "energy-flow-card-by-lutarym";
 const EDITOR_TAG = "energy-flow-card-by-lutarym-editor";
 
@@ -50,7 +50,6 @@ const GERAET = {
 };
 
 // Vorgabe fuer die weiteren Verbraucher, je Verbraucher aenderbar.
-const VERBRAUCHER_FARBEN = ["#D5DCE6"];
 
 /** Farbe aus der Konfiguration: Text wie #RRGGBB oder Liste [r, g, b]. */
 function farbeAus(wert, ersatz) {
@@ -122,7 +121,80 @@ function spurMuster(folge, quelle, dash) {
   }
   return { muster: teile.map((t) => t.l.toFixed(2)).join(" "), basis, laenge: periode * folge.length };
 }
-const NEUTRAL = "#46536A";
+
+/* ------------------------------------------------------------------ *
+ *  Farbschemas
+ *  Hintergrund, Kreise, Leitungen und Schrift. Die Farben der Quellen
+ *  (PV gelb, Netz blau, Akku gruen) und der Geraete bleiben in allen
+ *  Schemas gleich, damit die Herkunft des Stroms immer gleich aussieht.
+ *  "ha" uebernimmt die Farben des aktiven Home Assistant Designs,
+ *  "auto" waehlt hell oder dunkel passend zu Home Assistant.
+ * ------------------------------------------------------------------ */
+const THEMEN = {
+  dunkel: {
+    bg: "linear-gradient(180deg, #131A24 0%, #0D131B 100%)", text: "#E8EDF4",
+    knoten: "#111821", knotenRand: "#2A3445", rohr: "#2E3848", huelle: "#0B1017",
+    label: "#D2DAE5", labelBg: "#0F151D", icon: "#55657F", wert: "#FFFFFF", sub: "#C4CEDB",
+    aus: "#9AA6B6", kontur: "#0B1017", infoBg: "#0F151D", infoRand: "#2A3445",
+    saeule: "#111821", saeuleRand: "#C3D0E0", neutral: "#46536A", haus: "#FFFFFF", verbraucher: "#D5DCE6",
+    demoBg: "#16233A", demoRand: "#3E6EA8", demoText: "#B8D0EC",
+    hinweisBg: "#2A2313", hinweisRand: "#B07B2E", hinweisText: "#F2DFB0",
+  },
+  hell: {
+    bg: "linear-gradient(180deg, #F8FAFC 0%, #EDF1F6 100%)", text: "#1A2330",
+    knoten: "#FFFFFF", knotenRand: "#C9D3DF", rohr: "#C5CFDB", huelle: "#E3E9F0",
+    label: "#3A4656", labelBg: "#EDF1F6", icon: "#8A97A8", wert: "#0F1722", sub: "#4A5768",
+    aus: "#8A97A8", kontur: "#FFFFFF", infoBg: "#FFFFFF", infoRand: "#C9D3DF",
+    saeule: "#FFFFFF", saeuleRand: "#8A97A8", neutral: "#B8C3D0", haus: "#1F2A37", verbraucher: "#5B6B80",
+    demoBg: "#E6EFFB", demoRand: "#7FA4D6", demoText: "#24476F",
+    hinweisBg: "#FBF1DD", hinweisRand: "#D3A253", hinweisText: "#6A4A12",
+  },
+  ha: {
+    bg: "var(--ha-card-background, var(--card-background-color, #1C1C1C))", text: "var(--primary-text-color)",
+    knoten: "var(--ha-card-background, var(--card-background-color, #1C1C1C))", knotenRand: "var(--divider-color)",
+    rohr: "var(--divider-color)", huelle: "var(--secondary-background-color, transparent)",
+    label: "var(--secondary-text-color)", labelBg: "var(--ha-card-background, var(--card-background-color, #1C1C1C))",
+    icon: "var(--secondary-text-color)", wert: "var(--primary-text-color)", sub: "var(--secondary-text-color)",
+    aus: "var(--disabled-text-color, var(--secondary-text-color))",
+    kontur: "var(--ha-card-background, var(--card-background-color, #1C1C1C))",
+    infoBg: "var(--secondary-background-color, transparent)", infoRand: "var(--divider-color)",
+    saeule: "var(--ha-card-background, var(--card-background-color, #1C1C1C))", saeuleRand: "var(--secondary-text-color)",
+    neutral: "var(--disabled-text-color, #9E9E9E)", haus: "var(--primary-text-color)", verbraucher: "var(--secondary-text-color)",
+    demoBg: "var(--secondary-background-color, transparent)", demoRand: "var(--primary-color)", demoText: "var(--primary-text-color)",
+    hinweisBg: "var(--secondary-background-color, transparent)", hinweisRand: "var(--warning-color, #FFA600)", hinweisText: "var(--primary-text-color)",
+  },
+  // Reines Schwarz, gut fuer Wandtablets mit OLED-Anzeige.
+  oled: {
+    bg: "#000000", text: "#E6E6E6",
+    knoten: "#050505", knotenRand: "#1E1E1E", rohr: "#262626", huelle: "#000000",
+    label: "#D0D0D0", labelBg: "#000000", icon: "#5A5A5A", wert: "#FFFFFF", sub: "#BDBDBD",
+    aus: "#8A8A8A", kontur: "#000000", infoBg: "#050505", infoRand: "#1E1E1E",
+    saeule: "#050505", saeuleRand: "#9A9A9A", neutral: "#3A3A3A", haus: "#FFFFFF", verbraucher: "#D5DCE6",
+    demoBg: "#0A0F18", demoRand: "#2D4E78", demoText: "#AFC4E0",
+    hinweisBg: "#140F05", hinweisRand: "#7A5520", hinweisText: "#EBD3A0",
+  },
+  // Tiefes Nachtblau, ruhig und kontrastreich.
+  mitternacht: {
+    bg: "linear-gradient(180deg, #0D1834 0%, #060C1F 100%)", text: "#E3EAF8",
+    knoten: "#0E1A38", knotenRand: "#213463", rohr: "#22335C", huelle: "#050A18",
+    label: "#C9D6F2", labelBg: "#0A142C", icon: "#5F76A8", wert: "#FFFFFF", sub: "#B8C7E6",
+    aus: "#8C9CC0", kontur: "#050A18", infoBg: "#0A142C", infoRand: "#213463",
+    saeule: "#0E1A38", saeuleRand: "#AFC1E6", neutral: "#3A4E7E", haus: "#FFFFFF", verbraucher: "#D5DCE6",
+    demoBg: "#13234A", demoRand: "#3E6EA8", demoText: "#B8D0EC",
+    hinweisBg: "#2A2313", hinweisRand: "#B07B2E", hinweisText: "#F2DFB0",
+  },
+  // Neutrales Grau ohne Blaustich, passt zu schlichten Dashboards.
+  graphit: {
+    bg: "linear-gradient(180deg, #2E3033 0%, #242628 100%)", text: "#ECEDEF",
+    knoten: "#303235", knotenRand: "#45484D", rohr: "#4A4D52", huelle: "#1C1D1F",
+    label: "#DADCDF", labelBg: "#2A2C2F", icon: "#8A8E95", wert: "#FFFFFF", sub: "#C9CCD1",
+    aus: "#9EA2A8", kontur: "#1C1D1F", infoBg: "#2A2C2F", infoRand: "#45484D",
+    saeule: "#303235", saeuleRand: "#C9CCD1", neutral: "#5A5E64", haus: "#FFFFFF", verbraucher: "#D5DCE6",
+    demoBg: "#2F3540", demoRand: "#5A7AA8", demoText: "#C7D5EA",
+    hinweisBg: "#3A3222", hinweisRand: "#B07B2E", hinweisText: "#F2DFB0",
+  },
+};
+const THEMA_NAMEN = ["auto", "dunkel", "hell", "ha", "oled", "mitternacht", "graphit"];
 
 /* ------------------------------------------------------------------ *
  *  Zeichenraster, vier Spalten und drei Reihen:
@@ -349,6 +421,8 @@ const DEFAULT_CONFIG = {
   font_scale: 1,
   // Namen ueber und unter den Kreisen anzeigen.
   show_names: true,
+  // Farbschema, siehe THEMEN. "auto" folgt Home Assistant hell oder dunkel.
+  theme: "dunkel",
   // Aussehen der laufenden Leitungen, siehe STILE.
   animation_style: "striche",
   // Akkusaeule rechts neben dem Fluss.
@@ -785,7 +859,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
   _unveraendert(hass) {
     const alt = this._letzte;
     const neu = this._merke(hass);
-    if (!alt || alt.sprache !== neu.sprache || alt.refs.length !== neu.refs.length) return false;
+    if (!alt || alt.sprache !== neu.sprache || alt.dunkel !== neu.dunkel || alt.refs.length !== neu.refs.length) return false;
     return neu.refs.every((r, i) => r === alt.refs[i]);
   }
 
@@ -795,6 +869,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
     this._letzte = {
       refs: this._genutzteIds().map((id) => states[id]),
       sprache: hass && hass.language,
+      dunkel: hass && hass.themes ? hass.themes.darkMode : undefined,
     };
     return this._letzte;
   }
@@ -840,6 +915,23 @@ class LutarymEnergyFlowCard extends HTMLElement {
   }
 
   /** Eigener Name gewinnt, sonst der Name in der Kartensprache. */
+  /** Name des aktiven Farbschemas, "auto" aufgeloest in hell oder dunkel. */
+  _themaName() {
+    const gewaehlt = this._config && this._config.theme;
+    if (gewaehlt === "auto") {
+      const t = this._hass && this._hass.themes;
+      let dunkel;
+      if (t && typeof t.darkMode === "boolean") dunkel = t.darkMode;
+      else dunkel = !(window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches);
+      return dunkel ? "dunkel" : "hell";
+    }
+    return THEMEN[gewaehlt] ? gewaehlt : "dunkel";
+  }
+
+  _thema() {
+    return THEMEN[this._themaName()];
+  }
+
   _name(schluessel, standard) {
     const eigen = this._config && this._config[`name_${schluessel}`];
     // Bewusst leer eingetragen heisst: keine Beschriftung.
@@ -1084,7 +1176,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
       const sp = this._sp();
       return this._demo
         ? this._demo.verbraucher.map((v, i) => ({
-          ...v, name: v.name[sp] || v.name.en, farbe: VERBRAUCHER_FARBEN[i % VERBRAUCHER_FARBEN.length],
+          ...v, name: v.name[sp] || v.name.en, farbe: this._thema().verbraucher,
         }))
         : [];
     }
@@ -1094,7 +1186,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
       ohne: Array.isArray(v.exclude) ? v.exclude : v.exclude ? [v.exclude] : [],
       name: v.name || (v.entity ? this._friendly(v.entity) : this._raumName(v.area)) || `${this._t("verbraucher")} ${i + 1}`,
       symbol: SYMBOLE[v.icon] ? v.icon : "steckdose",
-      farbe: farbeAus(v.color, VERBRAUCHER_FARBEN[i % VERBRAUCHER_FARBEN.length]),
+      farbe: farbeAus(v.color, this._thema().verbraucher),
       platz: v.position,
     }));
   }
@@ -1227,7 +1319,8 @@ class LutarymEnergyFlowCard extends HTMLElement {
     const akku = this._zeigtAkku();
     const anzahl = this._verbraucherListe().length;
     const plan = JSON.stringify(this._platzierung());
-    if (this._built && (this._gebautMit !== sprache || this._gebautPlan !== plan ||
+    const thema = this._themaName();
+    if (this._built && (this._gebautMit !== sprache || this._gebautPlan !== plan || this._gebautThema !== thema ||
         this._gebautAkku !== akku || this._gebautEx !== anzahl)) {
       this._built = false;
     }
@@ -1235,6 +1328,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
       this._build();
       this._built = true;
       this._gebautMit = sprache;
+      this._gebautThema = thema;
       this._gebautPlan = plan;
       this._gebautAkku = akku;
       this._gebautEx = anzahl;
@@ -1610,7 +1704,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
         icon: ICON.pv, inhalt: this._werte("pv") })}
       ${this._knoten({ id: "akku", pos: G.AKKU, label: this._name("battery", "akku"), labelUnten: true,
         entity: this._config.entities.battery_soc ? "battery_soc" : "battery",
-        icon: ICON.akku, inhalt: `${this._bogen("akku-soc", NEUTRAL)}${this._werte("akku")}` })}
+        icon: ICON.akku, inhalt: `${this._bogen("akku-soc", FARBE.akku)}${this._werte("akku")}` })}
       ${this._knoten({ id: "netz", pos: G.NETZ, label: this._name("grid", "netz"),
         entity: this._config.entities.grid ? "grid" : "grid_import",
         icon: ICON.netz, inhalt: this._werte("netz") })}
@@ -1658,7 +1752,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
     const mix = typeof farbeOderMix === "string" || !farbeOderMix
       ? { haupt: farbeOderMix, teile: farbeOderMix ? [{ farbe: farbeOderMix, anteil: 1 }] : [] }
       : farbeOderMix;
-    const farbe = mix.haupt || NEUTRAL;
+    const farbe = mix.haupt || this._thema().neutral;
     const aktiv = w !== null && w !== undefined && w > (Number(c.min_flow) || 0);
     const spuren = [this._el(`f-${id}`), this._el(`f2-${id}`), this._el(`f3-${id}`)];
     // Jede Strichspur hat ihren eigenen Schein in ihrer Farbe. So bleibt
@@ -1725,17 +1819,17 @@ class LutarymEnergyFlowCard extends HTMLElement {
   /** Ring und Leuchten eines Knotens ein- oder ausschalten. */
   _setAktiv(id, aktiv, farbeOderMix) {
     const farbe = (farbeOderMix && farbeOderMix.haupt !== undefined
-      ? farbeOderMix.haupt : farbeOderMix) || NEUTRAL;
+      ? farbeOderMix.haupt : farbeOderMix) || this._thema().neutral;
     const ring = this._el(`ring-${id}`);
     if (ring) {
-      ring.setAttribute("stroke", farbe);
+      ring.style.stroke = farbe;
       ring.classList.toggle("is-on", aktiv);
     }
     const icon = this._el(`icon-${id}`);
     if (icon) icon.style.color = aktiv ? farbe : "";
     const glow = this._el(`glow-${id}`);
     if (!glow) return;
-    glow.setAttribute("stroke", farbe);
+    glow.style.stroke = farbe;
     if (aktiv && this._config.animate) {
       this._puls.set(`glow-${id}`, { dauer: 2.8, min: 0.12, max: 0.45 });
     } else {
@@ -1862,7 +1956,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
     // Was das Haus gerade bezieht, in den Farben der Quellen. Diese Farbe
     // tragen auch die Leitungen zu den Verbrauchern.
     const hausMix = mischung([[FARBE.pv, f.pvHaus], [FARBE.akku, f.akkuHaus], [FARBE.netz, f.netzHaus]]);
-    if (hausIcon) hausIcon.style.color = an(m.haus) ? GERAET.haus : "";
+    if (hausIcon) hausIcon.style.color = an(m.haus) ? this._thema().haus : "";
 
     /* ---- Leitungen ---- */
     this._zeige("ltg-pv_haus", m.hatPv);
@@ -2198,6 +2292,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
     const f = this._fs();
     const stil = this._stil();
     const px = (n) => `${(n * f).toFixed(1)}px`;
+    const t = this._thema();
     return `
       /* Die Karte fuellt genau den Platz, den Home Assistant ihr gibt.
          Ist die Hoehe fest vorgegeben, wird die Zeichnung verkleinert
@@ -2205,8 +2300,8 @@ class LutarymEnergyFlowCard extends HTMLElement {
       :host { display: block; height: 100%; }
       .lef-root { height: 100%; }
       .lef {
-        background: linear-gradient(180deg, #131A24 0%, #0D131B 100%);
-        color: #E8EDF4; padding: 4px; overflow: hidden; position: relative;
+        background: ${t.bg};
+        color: ${t.text}; padding: 4px; overflow: hidden; position: relative;
         box-sizing: border-box; height: 100%;
         display: flex; flex-direction: column;
       }
@@ -2216,8 +2311,8 @@ class LutarymEnergyFlowCard extends HTMLElement {
         display: flex; align-items: center; justify-content: flex-start;
       }
       .saeule { cursor: pointer; }
-      .saeule-rahmen { fill: #111821; stroke: #C3D0E0; stroke-width: 3; }
-      .saeule-pol { fill: #C3D0E0; opacity: 0.6; }
+      .saeule-rahmen { fill: ${t.saeule}; stroke: ${t.saeuleRand}; stroke-width: 3; }
+      .saeule-pol { fill: ${t.saeuleRand}; opacity: 0.6; }
       .bat-ueber { position: absolute; overflow: hidden; border-radius: 5px; cursor: pointer; }
       .bat-ueber[hidden] { display: none; }
       .bat-ueber canvas { width: 100%; height: 100%; display: block; }
@@ -2233,17 +2328,17 @@ class LutarymEnergyFlowCard extends HTMLElement {
         margin: 8px 8px 6px; padding: 10px 14px; border-radius: 10px; font-size: 14px;
         flex: 0 0 auto;
       }
-      .lef-hint { background: #2A2313; border: 1px solid #B07B2E; color: #F2DFB0; }
-      .lef-demo { background: #16233A; border: 1px solid #3E6EA8; color: #B8D0EC; font-size: 13px; }
+      .lef-hint { background: ${t.hinweisBg}; border: 1px solid ${t.hinweisRand}; color: ${t.hinweisText}; }
+      .lef-demo { background: ${t.demoBg}; border: 1px solid ${t.demoRand}; color: ${t.demoText}; font-size: 13px; }
       .lef-hint[hidden], .lef-demo[hidden] { display: none; }
       .lef-svg { width: 100%; height: auto; max-height: 100%; display: block; }
 
       .pipe-shell {
-        fill: none; stroke: #0B1017; stroke-width: 12;
+        fill: none; stroke: ${t.huelle}; stroke-width: 12;
         stroke-linecap: round; stroke-linejoin: round;
       }
       .pipe {
-        fill: none; stroke: #2E3848; stroke-width: 5;
+        fill: none; stroke: ${t.rohr}; stroke-width: 5;
         stroke-linecap: round; stroke-linejoin: round;
         transition: stroke 900ms ease, stroke-opacity 900ms ease;
       }
@@ -2258,11 +2353,11 @@ class LutarymEnergyFlowCard extends HTMLElement {
       .flow.is-on { opacity: 0.95; }
       .flow-glow.is-on { opacity: ${stil.schein[1]}; }
       .flow:not(.is-on), .flow-glow:not(.is-on) { opacity: 0 !important; }
-      .knotenpunkt { fill: #111821; stroke: #2E3848; stroke-width: 2; }
-      .info-rahmen { fill: #0F151D; stroke: #2A3445; stroke-width: 1.5; }
+      .knotenpunkt { fill: ${t.knoten}; stroke: ${t.rohr}; stroke-width: 2; }
+      .info-rahmen { fill: ${t.infoBg}; stroke: ${t.infoRand}; stroke-width: 1.5; }
 
       .node[data-entity], .node[data-entity-id] { cursor: pointer; }
-      .node-bg { fill: #111821; stroke: #2A3445; stroke-width: 2; }
+      .node-bg { fill: ${t.knoten}; stroke: ${t.knotenRand}; stroke-width: 2; }
       .node-glow { fill: none; stroke-width: 8; }
       .node-ring {
         fill: none; stroke-width: 2.5; opacity: 0;
@@ -2273,34 +2368,34 @@ class LutarymEnergyFlowCard extends HTMLElement {
         fill: none; stroke-width: 3.5; stroke-linecap: butt;
         transition: stroke-dasharray 900ms ease, stroke-dashoffset 900ms ease, stroke 900ms ease;
       }
-      .label-bg { fill: #0F151D; }
+      .label-bg { fill: ${t.labelBg}; }
       /* Klare Schrift: hell auf dunkel, kraeftig, mit dunkler Kontur, damit
          sie auch ueber Leuchtschein und Leitungen gut lesbar bleibt. */
       .node-label, .value, .value-k, .sub, .info-titel, .info-wert {
         font-family: Roboto, "Segoe UI", system-ui, -apple-system,
           "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", Meiryo, sans-serif;
-        paint-order: stroke; stroke: #0B1017; stroke-linejoin: round;
+        paint-order: stroke; stroke: ${t.kontur}; stroke-linejoin: round;
       }
       .node-label {
-        fill: #D2DAE5; font-size: ${px(13)}; font-weight: 600;
+        fill: ${t.label}; font-size: ${px(13)}; font-weight: 600;
         letter-spacing: 0.06em; text-transform: uppercase; stroke-width: 3px;
       }
       .node-label.klein { font-size: ${px(11.5)}; letter-spacing: 0.01em; text-transform: none; }
       .icon {
-        color: #55657F; fill: none; stroke: currentColor; stroke-width: 1.8;
+        color: ${t.icon}; fill: none; stroke: currentColor; stroke-width: 1.8;
         stroke-linecap: round; stroke-linejoin: round; transition: color 500ms ease;
       }
       .value, .value-k, .sub, .info-wert { font-variant-numeric: tabular-nums; }
-      .info-titel { fill: #C4CEDB; font-size: ${px(11)}; font-weight: 600; stroke-width: 3px; }
-      .info-wert { fill: #FFFFFF; font-size: ${px(18)}; font-weight: 700; stroke-width: 4px; }
+      .info-titel { fill: ${t.sub}; font-size: ${px(11)}; font-weight: 600; stroke-width: 3px; }
+      .info-wert { fill: ${t.wert}; font-size: ${px(18)}; font-weight: 700; stroke-width: 4px; }
       .value {
-        fill: #FFFFFF; font-size: ${px(19)}; font-weight: 700; stroke-width: 4px;
+        fill: ${t.wert}; font-size: ${px(19)}; font-weight: 700; stroke-width: 4px;
         transition: fill 500ms ease;
       }
-      .value-k { fill: #FFFFFF; font-size: ${px(10.5)}; font-weight: 700; stroke-width: 3px; }
-      .sub { fill: #C4CEDB; font-size: ${px(13)}; font-weight: 600; stroke-width: 3px; transition: fill 500ms ease; }
+      .value-k { fill: ${t.wert}; font-size: ${px(10.5)}; font-weight: 700; stroke-width: 3px; }
+      .sub { fill: ${t.sub}; font-size: ${px(13)}; font-weight: 600; stroke-width: 3px; transition: fill 500ms ease; }
 
-      .is-aus { fill: #9AA6B6; font-weight: 600; }
+      .is-aus { fill: ${t.aus}; font-weight: 600; }
     `;
   }
 }
@@ -2314,6 +2409,8 @@ const EDITOR_TEXTE = {
   de: {
     allgemein: "Allgemein",
     language: "Sprache",
+    theme: "Farbschema",
+    thema: { auto: "Automatisch (wie Home Assistant)", dunkel: "Dunkel", hell: "Hell", ha: "Home Assistant Design", oled: "OLED Schwarz", mitternacht: "Mitternachtsblau", graphit: "Graphit" },
     demo: "Demomodus (Beispielwerte)",
     show_names: "Namen anzeigen",
     animate: "Animation",
@@ -2403,6 +2500,8 @@ const EDITOR_TEXTE = {
   en: {
     allgemein: "General",
     language: "Language",
+    theme: "Colour scheme",
+    thema: { auto: "Automatic (like Home Assistant)", dunkel: "Dark", hell: "Light", ha: "Home Assistant theme", oled: "OLED black", mitternacht: "Midnight blue", graphit: "Graphite" },
     demo: "Demo mode (sample values)",
     show_names: "Show names",
     animate: "Animation",
@@ -2492,6 +2591,8 @@ const EDITOR_TEXTE = {
   fr: {
     allgemein: "Général",
     language: "Langue",
+    theme: "Jeu de couleurs",
+    thema: { auto: "Automatique (comme Home Assistant)", dunkel: "Sombre", hell: "Clair", ha: "Thème Home Assistant", oled: "Noir OLED", mitternacht: "Bleu nuit", graphit: "Graphite" },
     demo: "Mode démo (valeurs d'exemple)",
     show_names: "Afficher les noms",
     animate: "Animation",
@@ -2581,6 +2682,8 @@ const EDITOR_TEXTE = {
   ja: {
     allgemein: "全般",
     language: "言語",
+    theme: "配色",
+    thema: { auto: "自動（Home Assistant に合わせる）", dunkel: "ダーク", hell: "ライト", ha: "Home Assistant テーマ", oled: "OLED ブラック", mitternacht: "ミッドナイトブルー", graphit: "グラファイト" },
     demo: "デモモード（サンプル値）",
     show_names: "名前を表示",
     animate: "アニメーション",
@@ -2792,6 +2895,8 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
     return [
       { titel: "allgemein", offen: true, felder: [
         { name: "demo", selector: JA_NEIN },
+        { name: "theme", selector: { select: { mode: "dropdown",
+          options: THEMA_NAMEN.map((k) => ({ value: k, label: EDITOR_TEXTE[sp].thema[k] })) } } },
         { name: "language", selector: { select: { mode: "dropdown", options: [
           { value: "auto", label: this._et("auto") },
           { value: "de", label: "Deutsch" },
