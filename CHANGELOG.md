@@ -4,6 +4,11 @@
 
 ## English
 
+### v1.2.3
+
+- Lines with power from several sources show every colour in proportion, also small shares, for example every sixth dash yellow at 1/6 solar and 5/6 grid
+- Default places restored: heat pump top, wallbox bottom
+
 ### v1.1.0
 
 - New layout: the home stands in the middle of seven places for heat pump, wallbox and consumers, solar, grid and battery on the left
@@ -27,6 +32,11 @@ First release.
 - Languages: English, German, French and Japanese
 
 ## Deutsch
+
+### v1.2.3
+
+- Leitungen mit Strom aus mehreren Quellen zeigen jede Farbe anteilig, auch kleine Anteile, zum Beispiel jeden sechsten Strich gelb bei 1/6 PV und 5/6 Netz
+- Standardplätze wiederhergestellt: Wärmepumpe oben, Wallbox unten
 
 ### v1.1.0
 
@@ -52,6 +62,11 @@ Erste Veröffentlichung.
 
 ## Français
 
+### v1.2.3
+
+- Les lignes alimentées par plusieurs sources montrent chaque couleur en proportion, même les petites parts, par exemple un trait sur six jaune pour 1/6 de solaire et 5/6 de réseau
+- Emplacements par défaut rétablis : pompe à chaleur en haut, borne en bas
+
 ### v1.1.0
 
 - Nouvelle disposition : la maison est au milieu de sept emplacements pour la pompe à chaleur, la borne et les consommateurs, le solaire, le réseau et la batterie à gauche
@@ -75,6 +90,11 @@ Première version.
 - Langues : anglais, allemand, français et japonais
 
 ## 日本語
+
+### v1.2.3
+
+- 複数の電源からのラインは、小さな割合も含めて各色を割合に応じて表示（例：太陽光1/6、系統5/6なら6本に1本が黄色）
+- 既定の配置を復元：ヒートポンプは上、EV充電器は下
 
 ### v1.1.0
 

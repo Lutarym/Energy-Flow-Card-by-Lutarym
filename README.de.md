@@ -1,6 +1,6 @@
 # Energy Flow Card by Lutarym
 
-Version 1.1.0
+Version 1.2.3
 
 [English](README.md) · **Deutsch** · [Français](README.fr.md) · [日本語](README.ja.md)
 
@@ -14,7 +14,7 @@ Die Karte ist für dynamische Stromtarife optimiert: Die Farben der Leitungen ze
 
 - Das Haus steht in der Mitte von sieben Plätzen für Wärmepumpe, Wallbox und weitere Verbraucher. PV, Netz und Akku stehen links, zwischen ihnen und dem Haus steht kein Verbraucher
 - Jeder Kreis hat seine eigene Leitung zum Haus
-- Jedes Gerät hat seine eigene Farbe. Die Leitungen zeigen, woher der Strom stammt: PV gelb, Netz blau, Akku grün, etwa blau vom Netz bis in den Akku, wenn ein dynamischer Tarif den Akku lädt. Strom aus zwei Quellen zeigt beide Farben im Wechsel
+- Jedes Gerät hat seine eigene Farbe. Die Leitungen zeigen, woher der Strom stammt: PV gelb, Netz blau, Akku grün, etwa blau vom Netz bis in den Akku, wenn ein dynamischer Tarif den Akku lädt. Strom aus mehreren Quellen zeigt ihre Farben anteilig, zum Beispiel jeden sechsten Strich gelb bei 1/6 PV und 5/6 Netz
 - Das Tempo der Striche folgt der Leistung
 - Minimalistisch: runde Knoten mit kleinen Symbolen, leuchtender Ring bei Betrieb
 - Sonnenstrahlen und Lüfter der Wärmepumpe drehen mit der Leistung, das Wallbox Symbol pulsiert beim Laden
@@ -108,7 +108,7 @@ Symbole: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, 
 | `min_flow` | `10` | Kleinere Leistung in W gilt als Stillstand |
 | `grid_invert` | `false` | Vorzeichen von `grid` umkehren |
 | `battery_invert` | `false` | Vorzeichen von `battery` umkehren |
-| `heatpump_position`, `wallbox_position`, `position` eines Verbrauchers | automatisch | Platz rund um das Haus: `links_oben`, `oben`, `rechts_oben`, `rechts`, `rechts_unten`, `unten`, `links_unten`. Ohne Auswahl steht die Wärmepumpe links unten, die Wallbox rechts unten, die Verbraucher füllen die freien Plätze |
+| `heatpump_position`, `wallbox_position`, `position` eines Verbrauchers | automatisch | Platz rund um das Haus: `links_oben`, `oben`, `rechts_oben`, `rechts`, `rechts_unten`, `unten`, `links_unten`. Ohne Auswahl steht die Wärmepumpe oben, die Wallbox unten, die Verbraucher füllen die freien Plätze |
 | `name_pv`, `name_grid`, `name_battery`, `name_home`, `name_heatpump`, `name_wallbox` | | Eigene Namen, leer nimmt die Kartensprache |
 
 ## Lizenz

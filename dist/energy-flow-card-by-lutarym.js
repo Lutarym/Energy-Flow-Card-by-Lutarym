@@ -18,7 +18,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-const CARD_VERSION = "1.1.0";
+const CARD_VERSION = "1.2.3";
 const CARD_TAG = "energy-flow-card-by-lutarym";
 const EDITOR_TAG = "energy-flow-card-by-lutarym-editor";
 
@@ -59,19 +59,68 @@ function farbeAus(wert, ersatz) {
   return ersatz;
 }
 
-// Zweite Farbe nur zeigen, wenn diese Quelle mindestens so viel beitraegt.
-const MISCH_SCHWELLE = 0.2;
+// Strichmuster fuer gemischten Strom: In MISCH_STRICHE Strichen bekommt
+// jede Quelle so viele Striche, wie ihrem Anteil entspricht. Eine Quelle
+// ab MISCH_MIN Anteil bekommt mindestens einen Strich.
+const MISCH_STRICHE = 12;
+const MISCH_MIN = 0.03;
 
 /**
- * Ermittelt aus Anteilen [[farbe, watt], ...] die Hauptfarbe und, falls
- * eine zweite Quelle nennenswert beitraegt, auch deren Farbe.
+ * Ermittelt aus Anteilen [[farbe, watt], ...] die Hauptfarbe und die
+ * Anteile aller Quellen, groesste zuerst.
  */
 function mischung(anteile) {
   const liste = anteile.filter(([, w]) => w > 0).sort((a, b) => b[1] - a[1]);
   const summe = liste.reduce((a, [, w]) => a + w, 0);
-  if (!liste.length) return { haupt: null, neben: null };
-  const neben = liste[1] && liste[1][1] / summe >= MISCH_SCHWELLE ? liste[1][0] : null;
-  return { haupt: liste[0][0], neben };
+  if (!liste.length) return { haupt: null, teile: [] };
+  return { haupt: liste[0][0], teile: liste.map(([farbe, w]) => ({ farbe, anteil: w / summe })) };
+}
+
+/**
+ * Verteilt MISCH_STRICHE Striche auf die Quellen, anteilig und gleichmaessig
+ * gestreut. Ergebnis: fuer jeden Strich die Nummer der Quelle.
+ */
+function strichFolge(teile) {
+  const n = MISCH_STRICHE;
+  const zahl = teile.map((t) => (t.anteil >= MISCH_MIN ? Math.max(1, Math.round(t.anteil * n)) : 0));
+  // Auf genau n Striche bringen, Korrektur bei der groessten Quelle.
+  zahl[0] += n - zahl.reduce((a, b) => a + b, 0);
+  if (zahl[0] < 1) zahl[0] = 1;
+  const stand = zahl.map(() => 0);
+  const folge = [];
+  const gesamt = zahl.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < gesamt; i++) {
+    let beste = 0;
+    zahl.forEach((z, k) => { stand[k] += z; if (stand[k] > stand[beste]) beste = k; });
+    stand[beste] -= gesamt;
+    folge.push(beste);
+  }
+  return folge;
+}
+
+/**
+ * Strichmuster einer Quelle: In ihren Strichen das normale Muster, sonst
+ * Luecke. Beginnt das Muster mit einer Luecke, wird es gedreht, der
+ * Versatz gleicht das aus.
+ */
+function spurMuster(folge, quelle, dash) {
+  const periode = dash.reduce((a, b) => a + b, 0);
+  const teile = [];
+  const luecke = (l) => {
+    if (teile.length && teile[teile.length - 1].aus) teile[teile.length - 1].l += l;
+    else teile.push({ aus: true, l });
+  };
+  folge.forEach((q) => {
+    if (q === quelle) dash.forEach((l, i) => (i % 2 ? luecke(l) : teile.push({ aus: false, l })));
+    else luecke(periode);
+  });
+  let basis = 0;
+  if (teile.length && teile[0].aus) {
+    const erste = teile.shift();
+    basis = -erste.l;
+    luecke(erste.l);
+  }
+  return { muster: teile.map((t) => t.l.toFixed(2)).join(" "), basis, laenge: periode * folge.length };
 }
 const NEUTRAL = "#46536A";
 
@@ -139,7 +188,7 @@ const PLATZ_PFAD = {
 };
 
 /** Reihenfolge, in der freie Plaetze an Verbraucher ohne Wunsch gehen. */
-const PLATZ_FOLGE = ["links_oben", "oben", "rechts_oben", "rechts", "unten", "rechts_unten", "links_unten"];
+const PLATZ_FOLGE = ["links_oben", "links_unten", "rechts_oben", "rechts", "rechts_unten", "oben", "unten"];
 
 /* ------------------------------------------------------------------ *
  *  Kleine Symbole in den Kreisen, 24er Raster um den Nullpunkt
@@ -698,11 +747,6 @@ class LutarymEnergyFlowCard extends HTMLElement {
     return t(schluessel, this._sp());
   }
 
-  /** Laenge eines Strichmusters des gewaehlten Stils. */
-  _periode() {
-    return this._stil().dash.reduce((a, b) => a + b, 0) || STRICH_PERIODE;
-  }
-
   /** Gewaehlter Animationsstil, unbekannte Namen fallen auf Striche zurueck. */
   _stil() {
     const name = this._config && this._config.animation_style;
@@ -930,15 +974,15 @@ class LutarymEnergyFlowCard extends HTMLElement {
   /**
    * Verteilt Waermepumpe, Wallbox und Verbraucher auf die Plaetze.
    * Zuerst bekommt jeder seinen gewaehlten Platz, dann Waermepumpe und
-   * Wallbox ihren Standard links unten und rechts unten, der Rest fuellt die freien
+   * Wallbox ihren Standard oben und unten, der Rest fuellt die freien
    * Plaetze der Reihe nach. Ergebnis: Platzname je Kennung.
    */
   _platzierung() {
     const c = this._config;
     const e = c.entities || {};
     const liste = [];
-    if (c.demo || e.heatpump) liste.push({ id: "wp", wunsch: c.heatpump_position, standard: "links_unten" });
-    if (c.demo || e.wallbox) liste.push({ id: "wb", wunsch: c.wallbox_position, standard: "rechts_unten" });
+    if (c.demo || e.heatpump) liste.push({ id: "wp", wunsch: c.heatpump_position, standard: "oben" });
+    if (c.demo || e.wallbox) liste.push({ id: "wb", wunsch: c.wallbox_position, standard: "unten" });
     this._verbraucherListe().forEach((v, i) => liste.push({ id: `ex${i}`, wunsch: v.platz }));
     const belegt = new Set();
     const ergebnis = {};
@@ -1202,6 +1246,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
         <path class="flow-glow" id="fg-${id}" d="${pfad}"/>
         <path class="flow" id="f-${id}" d="${pfad}"/>
         <path class="flow" id="f2-${id}" d="${pfad}"/>
+        <path class="flow" id="f3-${id}" d="${pfad}"/>
       </g>`;
   }
 
@@ -1328,48 +1373,65 @@ class LutarymEnergyFlowCard extends HTMLElement {
     if (el && el.textContent !== text) el.textContent = text;
   }
 
-  /** Schaltet eine Leitung. Positive Leistung laeuft in Pfadrichtung. */
+  /**
+   * Schaltet eine Leitung. Positive Leistung laeuft in Pfadrichtung.
+   * Kommt der Strom aus mehreren Quellen, bekommt jede Quelle eine eigene
+   * Strichspur. Die Striche wechseln anteilig die Farbe: bei 1/6 PV und
+   * 5/6 Netz ist etwa jeder sechste Strich gelb.
+   */
   _setLeitung(id, w, farbeOderMix, rueck) {
     const c = this._config;
     const mix = typeof farbeOderMix === "string" || !farbeOderMix
-      ? { haupt: farbeOderMix, neben: null }
+      ? { haupt: farbeOderMix, teile: farbeOderMix ? [{ farbe: farbeOderMix, anteil: 1 }] : [] }
       : farbeOderMix;
     const farbe = mix.haupt || NEUTRAL;
     const aktiv = w !== null && w !== undefined && w > (Number(c.min_flow) || 0);
-    const f = this._el(`f-${id}`);
-    const f2 = this._el(`f2-${id}`);
+    const spuren = [this._el(`f-${id}`), this._el(`f2-${id}`), this._el(`f3-${id}`)];
     const fg = this._el(`fg-${id}`);
     const rohr = this._el(`pipe-${id}`);
-    if (!f) return;
-    f.classList.toggle("is-on", aktiv);
+    if (!spuren[0]) return;
     if (fg) fg.classList.toggle("is-on", aktiv);
-    // Zweite Quelle: eigene Strichspur, um eine halbe Periode versetzt.
-    const gemischt = aktiv && Boolean(mix.neben);
-    if (f2) {
-      f2.classList.toggle("is-on", gemischt);
-      if (gemischt) f2.style.stroke = mix.neben;
-    }
     if (rohr) {
       rohr.style.stroke = aktiv ? farbe : "";
       rohr.classList.toggle("is-on", aktiv);
     }
+    const dash = this._stil().dash;
+    const teile = (mix.teile || []).slice(0, 3);
+    const gemischt = aktiv && teile.length > 1;
+    const folge = gemischt ? strichFolge(teile) : null;
+    const laufend = [];
+    spuren.forEach((el, k) => {
+      if (!el) return;
+      let an = aktiv && (k === 0 || (gemischt && k < teile.length));
+      let basis = 0;
+      if (an && gemischt) {
+        const m = spurMuster(folge, k, dash);
+        if (!m.muster) an = false;
+        else {
+          el.style.strokeDasharray = m.muster;
+          basis = m.basis;
+        }
+      } else {
+        el.style.strokeDasharray = "";
+      }
+      el.classList.toggle("is-on", an);
+      if (!an) return;
+      el.style.stroke = gemischt ? teile[k].farbe : farbe;
+      laufend.push({ el, basis });
+      if (!c.animate) el.setAttribute("stroke-dashoffset", basis.toFixed(1));
+    });
     if (aktiv) {
-      f.style.stroke = farbe;
       if (fg) fg.style.stroke = farbe;
+      if (!c.animate && fg) fg.setAttribute("stroke-dashoffset", "0");
       const p = anteil(w, c.max_power);
       const alt = this._fluss.get(id);
       this._fluss.set(id, {
         tempo: (14 + 110 * p) * this._stil().tempo,
         versatz: alt ? alt.versatz : 0,
         rueck: Boolean(rueck),
-        els: fg ? [f, fg] : [f],
-        zweit: gemischt ? f2 : null,
+        spuren: laufend,
+        glow: fg,
       });
-      if (!c.animate) {
-        f.setAttribute("stroke-dashoffset", "0");
-        if (fg) fg.setAttribute("stroke-dashoffset", "0");
-        if (gemischt) f2.setAttribute("stroke-dashoffset", (this._periode() / 2).toFixed(1));
-      }
     } else {
       this._fluss.delete(id);
     }
@@ -1797,26 +1859,27 @@ class LutarymEnergyFlowCard extends HTMLElement {
     // Tempoaenderung keinen Sprung erzeugt.
     const stil = this._stil();
     const periode = stil.dash.reduce((a, b) => a + b, 0) || STRICH_PERIODE;
+    // Die Spanne ist ein Vielfaches des gemischten Musters, damit der
+    // Ruecksprung nicht zu sehen ist.
+    const spanne = periode * MISCH_STRICHE * 100;
     this._fluss.forEach((s) => {
-      s.versatz = (s.versatz + (s.rueck ? 1 : -1) * s.tempo * dt) % (periode * 1000);
-      const wert = s.versatz.toFixed(1);
-      s.els.forEach((el) => el.setAttribute("stroke-dashoffset", wert));
-      if (s.zweit) s.zweit.setAttribute("stroke-dashoffset", (s.versatz + periode / 2).toFixed(1));
+      s.versatz = (s.versatz + (s.rueck ? 1 : -1) * s.tempo * dt) % spanne;
+      if (s.glow) s.glow.setAttribute("stroke-dashoffset", s.versatz.toFixed(1));
+      s.spuren.forEach((sp) => sp.el.setAttribute("stroke-dashoffset", (s.versatz + sp.basis).toFixed(1)));
     });
 
     // Zusatzeffekte einzelner Stile auf den laufenden Leitungen.
     if (stil.atmen || stil.zucken) {
       this._fluss.forEach((s, id) => {
-        const glow = s.els[1];
-        const strich = s.els[0];
+        const glow = s.glow;
         if (stil.atmen && glow) {
           const welle = 0.5 - 0.5 * Math.cos(((zeit % 1.6) / 1.6) * Math.PI * 2);
           glow.style.opacity = (0.08 + stil.schein[1] * 1.6 * welle).toFixed(2);
         }
-        if (stil.zucken && strich) {
+        if (stil.zucken) {
           // Pseudozufall aus Zeit und Leitung, damit nicht alle gleich flackern.
           const n = Math.sin(zeit * 37 + id.length * 13.7) * Math.sin(zeit * 11.3 + id.length);
-          strich.style.opacity = n > 0.55 ? "0.35" : "0.95";
+          s.spuren.forEach((sp) => { sp.el.style.opacity = n > 0.55 ? "0.35" : "0.95"; });
         }
       });
     }

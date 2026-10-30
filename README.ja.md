@@ -1,6 +1,6 @@
 # Energy Flow Card by Lutarym
 
-Version 1.1.0
+Version 1.2.3
 
 [English](README.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · **日本語**
 
@@ -14,7 +14,7 @@ Home Assistant 用のアニメーション付き Lovelace カードです。太�
 
 - 家庭はヒートポンプ、EV充電器、その他の機器のための7つの配置の中央。太陽光、系統、蓄電池は左側にあり、家庭との間に機器はありません
 - すべての円は家庭への専用ラインを持ちます
-- 機器ごとに固有の色。ラインは電気の出どころを示します：太陽光は黄、系統は青、蓄電池は緑。例えば動的料金で蓄電池を充電するときは、系統から蓄電池まで青になります。2つの電源からの電気は両方の色が交互に表示されます
+- 機器ごとに固有の色。ラインは電気の出どころを示します：太陽光は黄、系統は青、蓄電池は緑。例えば動的料金で蓄電池を充電するときは、系統から蓄電池まで青になります。複数の電源からの電気はそれぞれの色が割合に応じて表示されます。例えば太陽光1/6、系統5/6なら6本に1本が黄色になります
 - ラインの流れる速さは電力に比例
 - ミニマルなデザイン：小さなアイコン付きの丸いノード、稼働中は光るリング
 - 太陽の光線とヒートポンプのファンは電力に合わせて回転、EV充電器のアイコンは充電中に脈動
@@ -108,7 +108,7 @@ consumers:
 | `min_flow` | `10` | これより小さい電力（W）は停止とみなす |
 | `grid_invert` | `false` | `grid` の符号を反転 |
 | `battery_invert` | `false` | `battery` の符号を反転 |
-| `heatpump_position`、`wallbox_position`、機器の `position` | 自動 | 家庭の周りの配置：`links_oben`, `oben`, `rechts_oben`, `rechts`, `rechts_unten`, `unten`, `links_unten`（左上、上、右上、右、右下、下、左下）。未選択の場合、ヒートポンプは左下、EV充電器は右下、その他の機器は空いている配置を順に使用 |
+| `heatpump_position`、`wallbox_position`、機器の `position` | 自動 | 家庭の周りの配置：`links_oben`, `oben`, `rechts_oben`, `rechts`, `rechts_unten`, `unten`, `links_unten`（左上、上、右上、右、右下、下、左下）。未選択の場合、ヒートポンプは上、EV充電器は下、その他の機器は空いている配置を順に使用 |
 | `name_pv`, `name_grid`, `name_battery`, `name_home`, `name_heatpump`, `name_wallbox` | | 独自の名前、空欄の場合はカードの言語を使用 |
 
 ## ライセンス

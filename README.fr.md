@@ -1,6 +1,6 @@
 # Energy Flow Card by Lutarym
 
-Version 1.1.0
+Version 1.2.3
 
 [English](README.md) · [Deutsch](README.de.md) · **Français** · [日本語](README.ja.md)
 
@@ -14,7 +14,7 @@ La carte est optimisée pour les tarifs d'électricité dynamiques : les couleur
 
 - La maison est au milieu de sept emplacements pour la pompe à chaleur, la borne et les autres consommateurs. Le solaire, le réseau et la batterie sont à gauche, sans consommateur entre eux et la maison
 - Chaque cercle a sa propre ligne vers la maison
-- Chaque appareil a sa propre couleur. Les lignes montrent d'où vient le courant : solaire jaune, réseau bleu, batterie vert, par exemple bleu du réseau jusqu'à la batterie quand un tarif dynamique charge la batterie. Le courant de deux sources montre les deux couleurs en alternance
+- Chaque appareil a sa propre couleur. Les lignes montrent d'où vient le courant : solaire jaune, réseau bleu, batterie vert, par exemple bleu du réseau jusqu'à la batterie quand un tarif dynamique charge la batterie. Le courant de plusieurs sources montre leurs couleurs en proportion, par exemple un trait sur six jaune pour 1/6 de solaire et 5/6 de réseau
 - La vitesse des traits suit la puissance
 - Design minimaliste : nœuds ronds avec petits symboles, anneau lumineux en fonctionnement
 - Les rayons du soleil et le ventilateur de la pompe à chaleur tournent avec la puissance, le symbole de la borne pulse pendant la charge
@@ -108,7 +108,7 @@ Symboles : `steckdose` (prise), `waschmaschine` (lave-linge), `spuelmaschine` (l
 | `min_flow` | `10` | Une puissance plus faible en W compte comme arrêt |
 | `grid_invert` | `false` | Inverser le signe de `grid` |
 | `battery_invert` | `false` | Inverser le signe de `battery` |
-| `heatpump_position`, `wallbox_position`, `position` d'un consommateur | automatique | Emplacement autour de la maison : `links_oben`, `oben`, `rechts_oben`, `rechts`, `rechts_unten`, `unten`, `links_unten` (en haut à gauche, en haut, en haut à droite, à droite, en bas à droite, en bas, en bas à gauche). Sans choix, la pompe à chaleur va en bas à gauche, la borne en bas à droite et les consommateurs remplissent les emplacements libres |
+| `heatpump_position`, `wallbox_position`, `position` d'un consommateur | automatique | Emplacement autour de la maison : `links_oben`, `oben`, `rechts_oben`, `rechts`, `rechts_unten`, `unten`, `links_unten` (en haut à gauche, en haut, en haut à droite, à droite, en bas à droite, en bas, en bas à gauche). Sans choix, la pompe à chaleur va en haut, la borne en bas et les consommateurs remplissent les emplacements libres |
 | `name_pv`, `name_grid`, `name_battery`, `name_home`, `name_heatpump`, `name_wallbox` | | Noms personnalisés, vide utilise la langue de la carte |
 
 ## Licence

@@ -1,6 +1,6 @@
 # Energy Flow Card by Lutarym
 
-Version 1.1.0
+Version 1.2.3
 
 **English** · [Deutsch](README.de.md) · [Français](README.fr.md) · [日本語](README.ja.md)
 
@@ -14,7 +14,7 @@ The card is optimized for dynamic electricity tariffs: the line colours show at 
 
 - The home stands in the middle of seven places for heat pump, wallbox and further consumers. Solar, grid and battery stand on the left, with no consumer between them and the home
 - Every circle has its own line to the home
-- Every device has its own colour. The lines show where the power comes from: solar yellow, grid blue, battery green, for example blue all the way from the grid to the battery when a dynamic tariff charges the battery. Power from two sources shows both colours alternating
+- Every device has its own colour. The lines show where the power comes from: solar yellow, grid blue, battery green, for example blue all the way from the grid to the battery when a dynamic tariff charges the battery. Power from several sources shows their colours in proportion, for example every sixth dash yellow at 1/6 solar and 5/6 grid
 - Speed of the running lines follows the power
 - Minimal design: round nodes with small symbols, glowing ring when active
 - Sun rays and heat pump fan turn with the power, wallbox symbol pulses while charging
@@ -108,7 +108,7 @@ Symbols: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, 
 | `min_flow` | `10` | Lower power in W counts as idle |
 | `grid_invert` | `false` | Invert the sign of `grid` |
 | `battery_invert` | `false` | Invert the sign of `battery` |
-| `heatpump_position`, `wallbox_position`, `position` of a consumer | automatic | Place around the home: `links_oben`, `oben`, `rechts_oben`, `rechts`, `rechts_unten`, `unten`, `links_unten` (top left, top, top right, right, bottom right, bottom, bottom left). Without a choice the heat pump goes to the bottom left, the wallbox to the bottom right and the consumers fill the free places |
+| `heatpump_position`, `wallbox_position`, `position` of a consumer | automatic | Place around the home: `links_oben`, `oben`, `rechts_oben`, `rechts`, `rechts_unten`, `unten`, `links_unten` (top left, top, top right, right, bottom right, bottom, bottom left). Without a choice the heat pump goes to the top, the wallbox to the bottom and the consumers fill the free places |
 | `name_pv`, `name_grid`, `name_battery`, `name_home`, `name_heatpump`, `name_wallbox` | | Own names, empty uses the card language |
 
 ## License
