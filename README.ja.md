@@ -1,6 +1,6 @@
 # Energy Flow Card by Lutarym
 
-Version 1.3.0
+Version 1.3.2
 
 [English](README.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · **日本語**
 
@@ -114,7 +114,7 @@ consumers:
 | `price_per_kwh` | `0` | 電力量料金（ct/kWh） |
 | `base_fee_month` | `0` | 月額基本料金、日割りで計算 |
 | `heatpump_position`、`wallbox_position`、機器の `position` | 自動 | 家庭の周りの配置：`links_oben`, `oben`, `rechts_oben`, `rechts`, `rechts_unten`, `unten`, `links_unten`（左上、上、右上、右、右下、下、左下）。未選択の場合、ヒートポンプは上、EV充電器は下、その他の機器は空いている配置を順に使用 |
-| `name_pv`, `name_grid`, `name_battery`, `name_home`, `name_heatpump`, `name_wallbox` | | 独自の名前。未設定：カードの言語の名前。空（`""`）に設定：表示なし |
+| `name_pv`, `name_grid`, `name_battery`, `name_home`, `name_heatpump`, `name_wallbox` | | 独自の名前。エディターには図に表示中の名前が表示されます。欄を空（`""`）にすると表示なし |
 
 ## ライセンス
 

@@ -18,7 +18,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-const CARD_VERSION = "1.3.0";
+const CARD_VERSION = "1.3.2";
 const CARD_TAG = "energy-flow-card-by-lutarym";
 const EDITOR_TAG = "energy-flow-card-by-lutarym-editor";
 
@@ -377,6 +377,12 @@ const DEFAULT_CONFIG = {
 };
 
 const MAX_VERBRAUCHER = 7;
+
+/** Namensfelder und der Text, der ohne eigenen Namen in der Grafik steht. */
+const NAME_STANDARD = {
+  name_pv: "pv", name_grid: "netz", name_battery: "akku",
+  name_home: "haus", name_heatpump: "wp", name_wallbox: "wallbox",
+};
 
 /* ------------------------------------------------------------------ *
  *  Hilfsfunktionen
@@ -2683,6 +2689,12 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
   }
 
   /** Aktuelle Werte eines Abschnitts aus der Konfiguration lesen. */
+  /** Standardname eines Namensfelds in der Kartensprache. */
+  _standardName(feld) {
+    const texte = TEXTE[this._sp()] || TEXTE.en;
+    return texte[NAME_STANDARD[feld]] || "";
+  }
+
   _daten(abschnitt) {
     const c = this._config || {};
     const d = {};
@@ -2693,6 +2705,9 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
       else v = c[f.name] !== undefined ? c[f.name] : DEFAULT_CONFIG[f.name];
       // Auswahllisten arbeiten mit Text, gespeichert wird die Zahl.
       if (f.name === "battery_bar_animation" && v !== undefined) v = String(v);
+      // Namensfeld ohne eigenen Namen zeigt den Text, der in der Grafik
+      // steht. Wird es geleert, steht dort nichts mehr.
+      if (NAME_STANDARD[f.name] && v === undefined) v = this._standardName(f.name);
       if (v !== undefined && v !== "") d[f.name] = v;
     });
     if (abschnitt.titel === "allgemein" && d.language === undefined) d.language = "auto";
@@ -2706,6 +2721,11 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
     await this._haFormLaden();
     const wurzel = this.shadowRoot.querySelector(".ed");
     wurzel.innerHTML = "";
+    // Version oben im Editor, damit sichtbar ist, welcher Stand geladen ist.
+    const kopf = document.createElement("div");
+    kopf.className = "version";
+    kopf.textContent = `Energy Flow Card by Lutarym · v${CARD_VERSION}`;
+    wurzel.appendChild(kopf);
     this._formulare = [];
     this._abschnitte().forEach((ab) => {
       const det = document.createElement("details");
@@ -2749,9 +2769,13 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
       if (/position$/.test(f.name) && v === "auto") v = "";
       const leer = v === undefined || v === null || v === "";
       // Ein geleertes Namensfeld bleibt als "" stehen: keine Beschriftung.
-      // Je nach Version liefert das Formular "" oder gar keinen Wert.
-      if (/^name_/.test(f.name) && (v === "" || (v === undefined && this._config[f.name] !== undefined))) {
-        c[f.name] = "";
+      // Namensfelder: Der Standardname bleibt ungespeichert, ein geleertes
+      // Feld wird als "" gespeichert und heisst: keine Beschriftung. Je nach
+      // Version liefert das Formular dabei "" oder gar keinen Wert.
+      if (NAME_STANDARD[f.name]) {
+        if (v === undefined || v === null || v === "") c[f.name] = "";
+        else if (v === this._standardName(f.name) && c[f.name] === undefined) delete c[f.name];
+        else c[f.name] = v;
         return;
       }
       if (f.ort === "e") {
@@ -2790,6 +2814,7 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
     return `
       .ed { display: flex; flex-direction: column; gap: 8px; }
       .lade { color: var(--secondary-text-color); }
+      .version { color: var(--secondary-text-color); font-size: 12px; text-align: right; padding: 0 4px; }
       details {
         border: 1px solid var(--divider-color, #33415A); border-radius: 10px;
         background: var(--card-background-color, transparent);

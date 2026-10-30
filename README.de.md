@@ -1,6 +1,6 @@
 # Energy Flow Card by Lutarym
 
-Version 1.3.0
+Version 1.3.2
 
 [English](README.md) · **Deutsch** · [Français](README.fr.md) · [日本語](README.ja.md)
 
@@ -114,7 +114,7 @@ Symbole: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, 
 | `price_per_kwh` | `0` | Arbeitspreis in ct/kWh |
 | `base_fee_month` | `0` | Grundgebühr pro Monat, wird tageweise anteilig gerechnet |
 | `heatpump_position`, `wallbox_position`, `position` eines Verbrauchers | automatisch | Platz rund um das Haus: `links_oben`, `oben`, `rechts_oben`, `rechts`, `rechts_unten`, `unten`, `links_unten`. Ohne Auswahl steht die Wärmepumpe oben, die Wallbox unten, die Verbraucher füllen die freien Plätze |
-| `name_pv`, `name_grid`, `name_battery`, `name_home`, `name_heatpump`, `name_wallbox` | | Eigene Namen. Nicht gesetzt: Name in der Kartensprache. Leer gesetzt (`""`): keine Beschriftung |
+| `name_pv`, `name_grid`, `name_battery`, `name_home`, `name_heatpump`, `name_wallbox` | | Eigene Namen. Der Editor zeigt den Namen, der gerade in der Grafik steht. Feld leeren (`""`) für keine Beschriftung |
 
 ## Lizenz
 

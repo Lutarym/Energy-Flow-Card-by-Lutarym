@@ -4,6 +4,14 @@
 
 ## English
 
+### v1.3.2
+
+- Fix: name fields in the editor show the name that is drawn. A cleared field really removes the label, for example HOME
+
+### v1.3.1
+
+- The editor shows the card version at the top
+
 ### v1.3.0
 
 - New: grid import and cost since the billing date, cost from energy price plus base fee or from a cost sensor
@@ -37,6 +45,14 @@ First release.
 - Languages: English, German, French and Japanese
 
 ## Deutsch
+
+### v1.3.2
+
+- Behoben: Namensfelder im Editor zeigen den Namen, der in der Grafik steht. Ein geleertes Feld entfernt die Beschriftung wirklich, zum Beispiel HAUS
+
+### v1.3.1
+
+- Der Editor zeigt oben die Version der Karte
 
 ### v1.3.0
 
@@ -72,6 +88,14 @@ Erste Veröffentlichung.
 
 ## Français
 
+### v1.3.2
+
+- Corrigé : les champs de nom de l'éditeur montrent le nom affiché. Un champ vidé retire vraiment l'étiquette, par exemple MAISON
+
+### v1.3.1
+
+- L'éditeur affiche la version de la carte en haut
+
 ### v1.3.0
 
 - Nouveau : soutirage et coût depuis la date de facturation, coût à partir du prix du kWh plus l'abonnement ou d'un capteur de coût
@@ -105,6 +129,14 @@ Première version.
 - Langues : anglais, allemand, français et japonais
 
 ## 日本語
+
+### v1.3.2
+
+- 修正：エディターの名前欄に図の名前を表示。欄を空にするとラベル（例：家庭）が確実に消えます
+
+### v1.3.1
+
+- エディターの上部にカードのバージョンを表示
 
 ### v1.3.0
 
