@@ -1,6 +1,6 @@
 # Energy Flow Card by Lutarym
 
-Version 1.3.3
+Version 1.4.0
 
 [English](README.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · **日本語**
 
@@ -87,6 +87,16 @@ consumers:
 ### その他の機器
 
 `consumers` の下に最大7件、それぞれ `entity`、`name`、`icon`、任意で `color`（`#RRGGBB` または `[r, g, b]`）、`position`。エンティティが利用できない場合も機器は表示されたままで、`取得不可` と表示されます。
+
+`entity` の代わりにエリア（`area`）を指定できます。カードはそのエリアのすべての電力センサー（W または kW）を合計します：エリアに配置されたセンサーと、デバイスがエリアにあるセンサー。`exclude` に記載したセンサーは除外されます（例：二重に数えられる合計センサー）。利用できないセンサーはスキップされます。円の名前はエリア名です。両方を設定した場合は `entity` が優先されます。
+
+```yaml
+consumers:
+  - entity: sensor.waschmaschine_leistung
+  - area: kueche
+    exclude:
+      - sensor.kueche_steckdose_gesamt
+```
 アイコン：`steckdose`（コンセント）、`waschmaschine`（洗濯機）、`spuelmaschine`（食器洗い機）、`herd`（コンロ）、`kuehlschrank`（冷蔵庫）、`computer`（コンピューター）、`licht`（照明）、`auto`（車）。
 
 ### オプション

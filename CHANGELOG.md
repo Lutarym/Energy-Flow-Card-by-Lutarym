@@ -4,6 +4,10 @@
 
 ## English
 
+### v1.4.0
+
+- New: a consumer can be an area instead of an entity, the card adds up all power sensors of the area, with exclusions
+
 ### v1.3.3
 
 - Fix: on lines with mixed power every colour has its own glow, small shares no longer look grey
@@ -49,6 +53,10 @@ First release.
 - Languages: English, German, French and Japanese
 
 ## Deutsch
+
+### v1.4.0
+
+- Neu: Ein Verbraucher kann statt einer Entität ein Raum sein, die Karte zählt alle Leistungssensoren des Raums zusammen, mit Ausschlüssen
 
 ### v1.3.3
 
@@ -96,6 +104,10 @@ Erste Veröffentlichung.
 
 ## Français
 
+### v1.4.0
+
+- Nouveau : un consommateur peut être une pièce au lieu d'une entité, la carte additionne tous les capteurs de puissance de la pièce, avec exclusions
+
 ### v1.3.3
 
 - Corrigé : sur les lignes au courant mixte, chaque couleur a sa propre lueur, les petites parts ne paraissent plus grises
@@ -141,6 +153,10 @@ Première version.
 - Langues : anglais, allemand, français et japonais
 
 ## 日本語
+
+### v1.4.0
+
+- 新機能：機器にエンティティの代わりにエリアを指定可能。エリアのすべての電力センサーを合計し、除外も設定可能
 
 ### v1.3.3
 

@@ -18,7 +18,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-const CARD_VERSION = "1.3.3";
+const CARD_VERSION = "1.4.0";
 const CARD_TAG = "energy-flow-card-by-lutarym";
 const EDITOR_TAG = "energy-flow-card-by-lutarym-editor";
 
@@ -692,7 +692,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
       ...config,
       entities: { ...(config.entities || {}) },
       consumers: Array.isArray(config.consumers)
-        ? config.consumers.filter((c) => c && c.entity).slice(0, MAX_VERBRAUCHER)
+        ? config.consumers.filter((c) => c && (c.entity || c.area)).slice(0, MAX_VERBRAUCHER)
         : [],
     };
     this._built = false;
@@ -720,7 +720,10 @@ class LutarymEnergyFlowCard extends HTMLElement {
   _genutzteIds() {
     const c = this._config;
     const ids = Object.values(c.entities || {}).filter(Boolean);
-    (c.consumers || []).forEach((v) => { if (v.entity) ids.push(v.entity); });
+    (c.consumers || []).forEach((v) => {
+      if (v.entity) ids.push(v.entity);
+      else if (v.area) ids.push(...this._raumSensoren(v.area, Array.isArray(v.exclude) ? v.exclude : []));
+    });
     return ids;
   }
 
@@ -859,7 +862,63 @@ class LutarymEnergyFlowCard extends HTMLElement {
    */
   _verbraucherText(id, w, aktiv) {
     if (w !== null && w !== undefined) return aktiv ? this._wText(w) : this._t("aus");
-    return this._zustand(id) ? this._t("nv") : "--";
+    return !id || this._zustand(id) ? this._t("nv") : "--";
+  }
+
+  /* -------------------- Raeume -------------------- */
+
+  /** Name eines Raums aus Home Assistant. */
+  _raumName(raum) {
+    const a = this._hass && this._hass.areas && this._hass.areas[raum];
+    return (a && a.name) || "";
+  }
+
+  /**
+   * Alle Leistungssensoren eines Raums: Sensoren, die selbst im Raum
+   * stehen, und Sensoren ohne eigenen Raum, deren Geraet im Raum steht.
+   * Ausgeschlossene fallen weg. Das Ergebnis wird je Registerstand gemerkt.
+   */
+  _raumSensoren(raum, ohne) {
+    const hass = this._hass;
+    if (!hass || !hass.entities) return [];
+    const schluessel = `${raum}|${(ohne || []).join(",")}`;
+    // Neu suchen nur, wenn sich das Register aendert, nicht bei jedem
+    // neuen Messwert.
+    if (!this._raumCache || this._raumCache.entities !== hass.entities ||
+        this._raumCache.devices !== hass.devices) {
+      this._raumCache = { entities: hass.entities, devices: hass.devices, listen: {} };
+    }
+    const cache = this._raumCache.listen;
+    if (cache[schluessel]) return cache[schluessel];
+    const geraete = hass.devices || {};
+    const aus = new Set(ohne || []);
+    const liste = Object.values(hass.entities).filter((e) => {
+      if (!e || !e.entity_id || !e.entity_id.startsWith("sensor.") || aus.has(e.entity_id)) return false;
+      if (e.hidden || e.entity_category) return false;
+      const imRaum = e.area_id
+        ? e.area_id === raum
+        : Boolean(e.device_id && geraete[e.device_id] && geraete[e.device_id].area_id === raum);
+      if (!imRaum) return false;
+      const st = hass.states[e.entity_id];
+      if (!st || !st.attributes) return false;
+      const einheit = String(st.attributes.unit_of_measurement || "").trim().toLowerCase();
+      return st.attributes.device_class === "power" || ["w", "kw", "mw"].includes(einheit);
+    }).map((e) => e.entity_id);
+    if (liste.length) cache[schluessel] = liste;
+    return liste;
+  }
+
+  /**
+   * Summe der Leistung eines Raums. Nicht verfuegbare Sensoren fallen weg,
+   * gerechnet wird mit den uebrigen. Liefert keiner einen Wert: null.
+   */
+  _raumLeistung(raum, ohne) {
+    let summe = null;
+    this._raumSensoren(raum, ohne).forEach((id) => {
+      const w = this._leistungVon(id);
+      if (w !== null) summe = (summe || 0) + w;
+    });
+    return summe;
   }
 
   /**
@@ -969,7 +1028,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
     const wb = demo || e.wallbox ? this._leistung("wallbox") : null;
     const verbraucher = this._verbraucherListe().map((v) => ({
       ...v,
-      w: this._leistungVon(v.id),
+      w: v.raum ? this._raumLeistung(v.raum, v.ohne) : this._leistungVon(v.id),
     }));
 
     const fluss = verteile({
@@ -993,8 +1052,10 @@ class LutarymEnergyFlowCard extends HTMLElement {
         : [];
     }
     return (this._config.consumers || []).map((v, i) => ({
-      id: v.entity,
-      name: v.name || this._friendly(v.entity) || `${this._t("verbraucher")} ${i + 1}`,
+      id: v.entity || "",
+      raum: v.entity ? "" : v.area || "",
+      ohne: Array.isArray(v.exclude) ? v.exclude : v.exclude ? [v.exclude] : [],
+      name: v.name || (v.entity ? this._friendly(v.entity) : this._raumName(v.area)) || `${this._t("verbraucher")} ${i + 1}`,
       symbol: SYMBOLE[v.icon] ? v.icon : "steckdose",
       farbe: farbeAus(v.color, VERBRAUCHER_FARBEN[i % VERBRAUCHER_FARBEN.length]),
       platz: v.position,
@@ -2269,6 +2330,8 @@ const EDITOR_TEXTE = {
     wallbox_secondary: "Zusatzzeile (z.B. Ladestand Auto)",
     name_wallbox: "Eigener Name",
     c_entity: "Verbraucher {n}: Leistung",
+    c_area: "Verbraucher {n}: oder Raum (Summe aller Leistungssensoren)",
+    c_exclude: "Verbraucher {n}: im Raum ausschließen",
     c_name: "Verbraucher {n}: Name",
     c_icon: "Verbraucher {n}: Symbol",
     c_color: "Verbraucher {n}: Farbe",
@@ -2351,6 +2414,8 @@ const EDITOR_TEXTE = {
     wallbox_secondary: "Extra line (e.g. car state of charge)",
     name_wallbox: "Own name",
     c_entity: "Consumer {n}: power",
+    c_area: "Consumer {n}: or area (sum of all power sensors)",
+    c_exclude: "Consumer {n}: exclude in area",
     c_name: "Consumer {n}: name",
     c_icon: "Consumer {n}: symbol",
     c_color: "Consumer {n}: colour",
@@ -2433,6 +2498,8 @@ const EDITOR_TEXTE = {
     wallbox_secondary: "Ligne supplémentaire (ex. charge de la voiture)",
     name_wallbox: "Nom personnalisé",
     c_entity: "Consommateur {n} : puissance",
+    c_area: "Consommateur {n} : ou pièce (somme de tous les capteurs de puissance)",
+    c_exclude: "Consommateur {n} : exclure dans la pièce",
     c_name: "Consommateur {n} : nom",
     c_icon: "Consommateur {n} : symbole",
     c_color: "Consommateur {n} : couleur",
@@ -2515,6 +2582,8 @@ const EDITOR_TEXTE = {
     wallbox_secondary: "追加行（例：車の充電率）",
     name_wallbox: "表示名",
     c_entity: "機器 {n}：電力",
+    c_area: "機器 {n}：またはエリア（全電力センサーの合計）",
+    c_exclude: "機器 {n}：エリア内で除外",
     c_name: "機器 {n}：名前",
     c_icon: "機器 {n}：アイコン",
     c_color: "機器 {n}：色",
@@ -2614,6 +2683,9 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
     for (let i = 0; i < MAX_VERBRAUCHER; i++) {
       verbraucher.push(
         { name: `c${i}_entity`, ort: "c", feld: "entity", idx: i, selector: LEISTUNG },
+        { name: `c${i}_area`, ort: "c", feld: "area", idx: i, selector: { area: {} } },
+        { name: `c${i}_exclude`, ort: "c", feld: "exclude", idx: i,
+          selector: { entity: { multiple: true, domain: "sensor" } } },
         { name: `c${i}_name`, ort: "c", feld: "name", idx: i, selector: TEXT },
         { name: `c${i}_icon`, ort: "c", feld: "icon", idx: i,
           selector: { select: { mode: "dropdown", options: symbole } } },
@@ -2699,7 +2771,7 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
   }
 
   _label(feld) {
-    const m = /^c(\d)_(entity|name|icon|color|position)$/.exec(feld.name);
+    const m = /^c(\d)_(entity|area|exclude|name|icon|color|position)$/.exec(feld.name);
     if (m) return this._et(`c_${m[2]}`).replace("{n}", String(Number(m[1]) + 1));
     return this._et(feld.name);
   }
@@ -2810,6 +2882,7 @@ class LutarymEnergyFlowCardEditor extends HTMLElement {
     });
     // Leere Verbraucher am Ende entfernen, Luecken dazwischen behalten.
     while (c.consumers.length && !c.consumers[c.consumers.length - 1].entity &&
+           !c.consumers[c.consumers.length - 1].area &&
            !c.consumers[c.consumers.length - 1].name) {
       c.consumers.pop();
     }

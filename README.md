@@ -1,6 +1,6 @@
 # Energy Flow Card by Lutarym
 
-Version 1.3.3
+Version 1.4.0
 
 **English** · [Deutsch](README.de.md) · [Français](README.fr.md) · [日本語](README.ja.md)
 
@@ -87,6 +87,16 @@ consumers:
 ### Further consumers
 
 Up to seven entries under `consumers`, each with `entity`, `name`, `icon` and optional `color` (`#RRGGBB` or `[r, g, b]`) and `position`. A consumer stays visible when its entity is unavailable and shows `n/a`.
+
+Instead of `entity` a consumer can use an `area`. The card then adds up all power sensors (W or kW) of that area: sensors placed in the area and sensors whose device is in the area. Sensors listed under `exclude` are left out, for example a total sensor that would count twice. Unavailable sensors are skipped. Name of the circle: the area name. If both are set, `entity` wins.
+
+```yaml
+consumers:
+  - entity: sensor.waschmaschine_leistung
+  - area: kueche
+    exclude:
+      - sensor.kueche_steckdose_gesamt
+```
 Symbols: `steckdose`, `waschmaschine`, `spuelmaschine`, `herd`, `kuehlschrank`, `computer`, `licht`, `auto`.
 
 ### Options
