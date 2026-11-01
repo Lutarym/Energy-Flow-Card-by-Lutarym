@@ -1,6 +1,6 @@
 # Energy Flow Card by Lutarym
 
-Version 1.5.0
+Version 1.6.0
 
 [English](README.md) · [Deutsch](README.de.md) · **Français** · [日本語](README.ja.md)
 
@@ -21,7 +21,8 @@ La carte est optimisée pour les tarifs d'électricité dynamiques : les couleur
 - L'anneau de la batterie montre l'état de charge, l'anneau de la maison l'origine du courant
 - Barre de batterie à droite avec 13 animations, reprise de lutarym-battery-card
 - Ligne supplémentaire optionnelle pour chaque appareil, par exemple production du jour, température de départ ou état de charge de la voiture
-- Un clic sur un appareil ouvre son entité dans Home Assistant
+- Un clic sur la pompe à chaleur, la borne ou un consommateur montre son historique des dernières 24 heures ou 7 jours avec moyenne, maximum et énergie, aussi pour une pièce. Les données viennent des statistiques de Home Assistant, le capteur a besoin de `state_class: measurement`
+- Un clic sur le solaire, le réseau, la batterie ou la maison ouvre son entité dans Home Assistant
 - Éditeur visuel, mode démo, anglais, allemand, français et japonais
 
 ## Prérequis

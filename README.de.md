@@ -1,6 +1,6 @@
 # Energy Flow Card by Lutarym
 
-Version 1.5.0
+Version 1.6.0
 
 [English](README.md) · **Deutsch** · [Français](README.fr.md) · [日本語](README.ja.md)
 
@@ -21,7 +21,8 @@ Die Karte ist für dynamische Stromtarife optimiert: Die Farben der Leitungen ze
 - Der Ring des Akkus zeigt den Ladestand, der Ring des Hauses die Herkunft des Stroms
 - Akkusäule rechts mit 13 Animationen, übernommen aus lutarym-battery-card
 - Optionale Zusatzzeile je Baugruppe, zum Beispiel Ertrag heute, Vorlauf oder Ladestand des Autos
-- Klick auf eine Baugruppe öffnet ihre Entität in Home Assistant
+- Klick auf Wärmepumpe, Wallbox oder einen Verbraucher zeigt seinen Verlauf der letzten 24 Stunden oder 7 Tage mit Mittel, Höchstwert und Energie, auch für einen Raum. Die Daten kommen aus der Statistik von Home Assistant, der Sensor braucht `state_class: measurement`
+- Klick auf PV, Netz, Akku oder Haus öffnet die Entität in Home Assistant
 - Visueller Editor, Demomodus, Englisch, Deutsch, Französisch und Japanisch
 
 ## Voraussetzungen

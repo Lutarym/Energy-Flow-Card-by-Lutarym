@@ -1,6 +1,6 @@
 # Energy Flow Card by Lutarym
 
-Version 1.5.0
+Version 1.6.0
 
 **English** · [Deutsch](README.de.md) · [Français](README.fr.md) · [日本語](README.ja.md)
 
@@ -21,7 +21,8 @@ The card is optimized for dynamic electricity tariffs: the line colours show at 
 - Battery ring shows the state of charge, home ring shows where the power comes from
 - Battery bar on the right with 13 animations, taken from lutarym-battery-card
 - Optional extra line for each device, for example yield today, flow temperature or car state of charge
-- Click on a device opens its entity in Home Assistant
+- Click on heat pump, wallbox or a consumer shows its history of the last 24 hours or 7 days with average, peak and energy, also for an area. The data comes from the Home Assistant statistics, the sensor needs `state_class: measurement`
+- Click on solar, grid, battery or home opens its entity in Home Assistant
 - Visual editor, demo mode, English, German, French and Japanese
 
 ## Requirements

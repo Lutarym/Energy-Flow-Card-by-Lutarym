@@ -4,6 +4,15 @@
 
 ## English
 
+### v1.6.0
+
+- New: click on heat pump, wallbox or a consumer shows its history of 24 hours or 7 days with average, peak and energy, also for areas
+
+### v1.5.1
+
+- Fix: mixed lines no longer jump. The order of the colours stays fixed, small changes of the shares no longer redistribute the dashes, a source only appears from 3 % and only disappears below 1.5 %
+- Fix: the pipe under a line stays neutral, no solid coloured line appears and disappears anymore
+
 ### v1.5.0
 
 - New: colour schemes automatic, dark, light, Home Assistant theme, OLED black, midnight blue and graphite
@@ -69,6 +78,15 @@ First release.
 - Languages: English, German, French and Japanese
 
 ## Deutsch
+
+### v1.6.0
+
+- Neu: Klick auf Wärmepumpe, Wallbox oder einen Verbraucher zeigt seinen Verlauf über 24 Stunden oder 7 Tage mit Mittel, Höchstwert und Energie, auch für Räume
+
+### v1.5.1
+
+- Behoben: Gemischte Leitungen springen nicht mehr. Die Reihenfolge der Farben bleibt fest, kleine Änderungen der Anteile verteilen die Striche nicht neu, eine Quelle erscheint erst ab 3 % und verschwindet erst unter 1,5 %
+- Behoben: Das Rohr unter einer Leitung bleibt neutral, es erscheint und verschwindet keine durchgehende farbige Linie mehr
 
 ### v1.5.0
 
@@ -136,6 +154,15 @@ Erste Veröffentlichung.
 
 ## Français
 
+### v1.6.0
+
+- Nouveau : un clic sur la pompe à chaleur, la borne ou un consommateur montre son historique sur 24 heures ou 7 jours avec moyenne, maximum et énergie, aussi pour les pièces
+
+### v1.5.1
+
+- Corrigé : les lignes mixtes ne sautent plus. L'ordre des couleurs reste fixe, de petites variations des parts ne redistribuent plus les traits, une source n'apparaît qu'à partir de 3 % et ne disparaît qu'en dessous de 1,5 %
+- Corrigé : le tube sous une ligne reste neutre, plus de ligne colorée continue qui apparaît et disparaît
+
 ### v1.5.0
 
 - Nouveau : jeux de couleurs automatique, sombre, clair, thème Home Assistant, noir OLED, bleu nuit et graphite
@@ -201,6 +228,15 @@ Première version.
 - Langues : anglais, allemand, français et japonais
 
 ## 日本語
+
+### v1.6.0
+
+- 新機能：ヒートポンプ、EV充電器、機器をクリックすると24時間または7日間の履歴（平均、最大、電力量）を表示。エリアにも対応
+
+### v1.5.1
+
+- 修正：混在ラインが跳ねなくなりました。色の順番を固定し、割合の小さな変化では破線を再配分せず、電源は3%以上で表示、1.5%未満で非表示
+- 修正：ラインの下の管は常にニュートラル。色付きの連続線が出たり消えたりしなくなりました
 
 ### v1.5.0
 

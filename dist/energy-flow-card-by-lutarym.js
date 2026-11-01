@@ -18,7 +18,7 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-const CARD_VERSION = "1.5.0";
+const CARD_VERSION = "1.6.0";
 const CARD_TAG = "energy-flow-card-by-lutarym";
 const EDITOR_TAG = "energy-flow-card-by-lutarym-editor";
 
@@ -63,28 +63,46 @@ function farbeAus(wert, ersatz) {
 // ab MISCH_MIN Anteil bekommt mindestens einen Strich.
 const MISCH_STRICHE = 12;
 const MISCH_MIN = 0.03;
+// Erst ab dieser Aenderung eines Anteils werden die Striche neu verteilt.
+const MISCH_RUHE = 0.06;
 
 /**
  * Ermittelt aus Anteilen [[farbe, watt], ...] die Hauptfarbe und die
  * Anteile aller Quellen, groesste zuerst.
  */
 function mischung(anteile) {
-  const liste = anteile.filter(([, w]) => w > 0).sort((a, b) => b[1] - a[1]);
+  // Die Reihenfolge der Quellen bleibt fest wie uebergeben. Wuerde nach
+  // Groesse sortiert, tauschten die Strichspuren bei fast gleichen Anteilen
+  // staendig ihre Farben und die Striche sprangen.
+  const liste = anteile.filter(([, w]) => w > 0);
   const summe = liste.reduce((a, [, w]) => a + w, 0);
   if (!liste.length) return { haupt: null, teile: [] };
-  return { haupt: liste[0][0], teile: liste.map(([farbe, w]) => ({ farbe, anteil: w / summe })) };
+  const groesste = liste.reduce((a, b) => (b[1] > a[1] ? b : a));
+  return { haupt: groesste[0], teile: liste.map(([farbe, w]) => ({ farbe, anteil: w / summe })) };
 }
 
 /**
  * Verteilt MISCH_STRICHE Striche auf die Quellen, anteilig und gleichmaessig
  * gestreut. Ergebnis: fuer jeden Strich die Nummer der Quelle.
  */
-function strichFolge(teile) {
+function strichZahlen(teile) {
   const n = MISCH_STRICHE;
-  const zahl = teile.map((t) => (t.anteil >= MISCH_MIN ? Math.max(1, Math.round(t.anteil * n)) : 0));
-  // Auf genau n Striche bringen, Korrektur bei der groessten Quelle.
-  zahl[0] += n - zahl.reduce((a, b) => a + b, 0);
-  if (zahl[0] < 1) zahl[0] = 1;
+  // Jede Quelle mindestens einen Strich, der Rest nach groesstem Rest, so
+  // ergibt die Summe immer genau n.
+  const roh = teile.map((t) => t.anteil * n);
+  const zahl = roh.map((r) => Math.max(1, Math.floor(r)));
+  let rest = n - zahl.reduce((a, b) => a + b, 0);
+  const nachRest = roh.map((r, k) => ({ k, r: r - Math.floor(r) })).sort((a, b) => b.r - a.r);
+  for (let i = 0; rest > 0; i = (i + 1) % nachRest.length, rest--) zahl[nachRest[i].k]++;
+  while (rest < 0) {
+    const k = zahl.indexOf(Math.max(...zahl));
+    zahl[k]--;
+    rest++;
+  }
+  return zahl;
+}
+
+function strichFolge(zahl) {
   const stand = zahl.map(() => 0);
   const folge = [];
   const gesamt = zahl.reduce((a, b) => a + b, 0);
@@ -335,6 +353,11 @@ const TEXTE = {
     demo: "Demomodus: Beispielwerte, keine echten Daten.",
     beschreibung: "Animierte Energieflusskarte mit PV, Netz, Akku, Haus, Wärmepumpe, Wallbox und weiteren Verbrauchern.",
     bezug_seit: "Bezug seit {d}",
+    verlauf_laedt: "lädt …",
+    verlauf_leer: "Keine Verlaufsdaten vorhanden. Der Sensor braucht eine Statistik (state_class: measurement).",
+    verlauf_mittel: "Mittel",
+    verlauf_max: "Höchstwert",
+    verlauf_energie: "Energie",
     kosten_bis: "Kosten bis heute",
   },
   en: {
@@ -352,6 +375,11 @@ const TEXTE = {
     demo: "Demo mode: sample values, no real data.",
     beschreibung: "Animated energy flow card with solar, grid, battery, home, heat pump, wallbox and further consumers.",
     bezug_seit: "Import since {d}",
+    verlauf_laedt: "loading …",
+    verlauf_leer: "No history available. The sensor needs statistics (state_class: measurement).",
+    verlauf_mittel: "Average",
+    verlauf_max: "Peak",
+    verlauf_energie: "Energy",
     kosten_bis: "Cost to date",
   },
   fr: {
@@ -369,6 +397,11 @@ const TEXTE = {
     demo: "Mode démo : valeurs d'exemple, pas de données réelles.",
     beschreibung: "Carte animée du flux d'énergie : solaire, réseau, batterie, maison, pompe à chaleur, borne et autres consommateurs.",
     bezug_seit: "Soutiré depuis {d}",
+    verlauf_laedt: "chargement …",
+    verlauf_leer: "Aucun historique disponible. Le capteur a besoin de statistiques (state_class: measurement).",
+    verlauf_mittel: "Moyenne",
+    verlauf_max: "Maximum",
+    verlauf_energie: "Énergie",
     kosten_bis: "Coût à ce jour",
   },
   ja: {
@@ -386,6 +419,11 @@ const TEXTE = {
     demo: "デモモード：サンプル値です。実際のデータではありません。",
     beschreibung: "太陽光、系統、蓄電池、家庭、ヒートポンプ、EV充電器、その他の機器のエネルギーフローを表示するアニメーションカード。",
     bezug_seit: "{d} 以降の買電",
+    verlauf_laedt: "読み込み中 …",
+    verlauf_leer: "履歴がありません。センサーには統計（state_class: measurement）が必要です。",
+    verlauf_mittel: "平均",
+    verlauf_max: "最大",
+    verlauf_energie: "電力量",
     kosten_bis: "現在までの電気代",
   },
 };
@@ -776,6 +814,8 @@ class LutarymEnergyFlowCard extends HTMLElement {
     this._dreh = new Map(); // Element -> { gradProSek, winkel }
     this._puls = new Map(); // Element -> { dauer, min, max }
     this._elCache = new Map();
+    this._mischStand = new Map(); // Leitung -> zuletzt gezeigte Aufteilung
+    this._mischFarben = new Map(); // Leitung -> zuletzt gezeigte Quellen
   }
 
   /* -------------------- Lebenszyklus -------------------- */
@@ -1348,6 +1388,8 @@ class LutarymEnergyFlowCard extends HTMLElement {
     if (this._animLoop) cancelAnimationFrame(this._animLoop);
     this._animLoop = null;
     this._fluss.clear();
+    this._mischStand.clear();
+    this._mischFarben.clear();
     this._dreh.clear();
     this._puls.clear();
     this._elCache.clear();
@@ -1365,6 +1407,17 @@ class LutarymEnergyFlowCard extends HTMLElement {
             <canvas id="bat-leinwand"></canvas>
             <div class="bat-pct" id="bat-pct"></div>
           </div>
+        </div>
+        <div class="verlauf" id="verlauf" hidden>
+          <div class="verlauf-kopf">
+            <span class="titel" id="verlauf-titel"></span>
+            <button type="button" data-stunden="24" class="aktiv">24 h</button>
+            <button type="button" data-stunden="168">7 d</button>
+            <button type="button" class="zu" id="verlauf-zu" aria-label="close">×</button>
+          </div>
+          <div class="verlauf-info" id="verlauf-info"></div>
+          <div class="verlauf-flaeche"><svg id="verlauf-svg"></svg>
+            <div class="verlauf-text" id="verlauf-text"></div></div>
         </div>
       </ha-card>`;
     this.shadowRoot.replaceChildren(root);
@@ -1423,7 +1476,22 @@ class LutarymEnergyFlowCard extends HTMLElement {
     const ueber = sr.getElementById("bat-ueber");
     const saeule = sr.getElementById("akku-saeule");
     if (ueber && saeule) ueber.addEventListener("click", () => saeule.dispatchEvent(new Event("click")));
+    // Verbraucher, Waermepumpe und Wallbox zeigen beim Klick ihren Verlauf.
+    sr.querySelectorAll("[data-verlauf]").forEach((el) => {
+      el.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        this._verlaufOeffnen(el.dataset.verlauf, 24);
+      });
+    });
+    const zu = sr.getElementById("verlauf-zu");
+    if (zu) zu.addEventListener("click", () => this._verlaufSchliessen());
+    sr.querySelectorAll(".verlauf-kopf [data-stunden]").forEach((b) => {
+      b.addEventListener("click", () => {
+        if (this._verlaufKey) this._verlaufOeffnen(this._verlaufKey, Number(b.dataset.stunden));
+      });
+    });
     sr.querySelectorAll("[data-entity], [data-entity-id]").forEach((el) => {
+      if (el.dataset.verlauf) return;
       el.addEventListener("click", () => {
         if (this._config.demo) return;
         const id = el.dataset.entityId || (el.dataset.entity ? this._id(el.dataset.entity) : "");
@@ -1437,6 +1505,154 @@ class LutarymEnergyFlowCard extends HTMLElement {
         );
       });
     });
+  }
+
+  /* -------------------- Verlauf -------------------- */
+
+  /** Name, Farbe und Sensoren hinter einem Verbraucher, der Waermepumpe oder der Wallbox. */
+  _verlaufQuelle(key) {
+    const c = this._config;
+    if (key === "wp") return { name: this._name("heatpump", "wp"), farbe: GERAET.wp, ids: [this._id("heatpump")] };
+    if (key === "wb") return { name: this._name("wallbox"), farbe: GERAET.wallbox, ids: [this._id("wallbox")] };
+    const i = Number(String(key).slice(2));
+    const v = this._verbraucherListe()[i];
+    if (!v) return null;
+    const ids = c.demo ? [] : v.raum ? this._raumSensoren(v.raum, v.ohne) : [v.id];
+    return { name: v.name, farbe: v.farbe, ids: ids.filter(Boolean) };
+  }
+
+  async _verlaufOeffnen(key, stunden) {
+    const q = this._verlaufQuelle(key);
+    const box = this._el("verlauf");
+    if (!q || !box) return;
+    this._verlaufKey = key;
+    box.hidden = false;
+    this.shadowRoot.querySelectorAll(".verlauf-kopf [data-stunden]").forEach((b) => {
+      b.classList.toggle("aktiv", Number(b.dataset.stunden) === stunden);
+    });
+    this._el("verlauf-titel").textContent = q.name;
+    this._el("verlauf-info").textContent = "";
+    this._el("verlauf-svg").innerHTML = "";
+    this._el("verlauf-text").textContent = this._t("verlauf_laedt");
+    const anfrage = (this._verlaufAnfrage || 0) + 1;
+    this._verlaufAnfrage = anfrage;
+    const punkte = await this._verlaufDaten(q.ids, stunden);
+    if (anfrage !== this._verlaufAnfrage || box.hidden) return;
+    this._verlaufZeichnen(q, punkte, stunden);
+  }
+
+  _verlaufSchliessen() {
+    const box = this._el("verlauf");
+    if (box) box.hidden = true;
+    this._verlaufKey = null;
+    this._verlaufAnfrage = (this._verlaufAnfrage || 0) + 1;
+  }
+
+  /**
+   * Holt den Verlauf aus der Statistik von Home Assistant: Mittelwert je
+   * 5 Minuten (24 h) oder je Stunde (7 Tage), in Watt. Bei einem Raum
+   * werden die Sensoren je Zeitpunkt addiert. Ergebnis: [[ms, watt], ...].
+   */
+  async _verlaufDaten(ids, stunden) {
+    const ende = Date.now();
+    const start = ende - stunden * 3600000;
+    if (this._config.demo) {
+      const schritt = stunden > 24 ? 3600000 : 300000;
+      const liste = [];
+      for (let t = start; t <= ende; t += schritt) {
+        const h = new Date(t).getHours() + new Date(t).getMinutes() / 60;
+        liste.push([t, Math.max(0, 400 + 900 * Math.sin((h - 6) / 24 * Math.PI * 2) + 150 * Math.sin(t / 2.3e6))]);
+      }
+      return liste;
+    }
+    const hass = this._hass;
+    if (!hass || !hass.callWS || !ids.length) return [];
+    try {
+      const r = await hass.callWS({
+        type: "recorder/statistics_during_period",
+        start_time: new Date(start).toISOString(),
+        end_time: new Date(ende).toISOString(),
+        statistic_ids: ids,
+        period: stunden > 24 ? "hour" : "5minute",
+        types: ["mean"],
+        units: { power: "W" },
+      });
+      const summe = new Map();
+      ids.forEach((id) => {
+        (r && r[id] ? r[id] : []).forEach((e) => {
+          const t = typeof e.start === "number" ? e.start : Date.parse(e.start);
+          const w = Number(e.mean);
+          if (Number.isNaN(t) || Number.isNaN(w)) return;
+          summe.set(t, (summe.get(t) || 0) + w);
+        });
+      });
+      return [...summe.entries()].sort((a, b) => a[0] - b[0]);
+    } catch (err) {
+      return [];
+    }
+  }
+
+  _verlaufZeichnen(q, punkte, stunden) {
+    const svg = this._el("verlauf-svg");
+    const text = this._el("verlauf-text");
+    const info = this._el("verlauf-info");
+    if (!svg) return;
+    if (punkte.length < 2) {
+      svg.innerHTML = "";
+      text.textContent = this._t("verlauf_leer");
+      return;
+    }
+    text.textContent = "";
+    // Zeichnen in der echten Groesse der Flaeche, damit Schrift nicht verzerrt.
+    const rahmen = svg.parentElement.getBoundingClientRect();
+    const W = Math.max(200, Math.round(rahmen.width));
+    const H = Math.max(120, Math.round(rahmen.height));
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const L = 46;
+    const U = 22;
+    const t0 = punkte[0][0];
+    const t1 = punkte[punkte.length - 1][0];
+    const werte = punkte.map((p) => p[1]);
+    const max = Math.max(...werte, 1);
+    const oben = max * 1.1;
+    const x = (t) => L + ((t - t0) / Math.max(1, t1 - t0)) * (W - L - 6);
+    const y = (w) => 6 + (1 - w / oben) * (H - U - 6);
+    const linie = punkte.map((p, k) => `${k ? "L" : "M"}${x(p[0]).toFixed(1)} ${y(p[1]).toFixed(1)}`).join(" ");
+    const flaeche = `${linie} L${x(t1).toFixed(1)} ${y(0).toFixed(1)} L${x(t0).toFixed(1)} ${y(0).toFixed(1)} Z`;
+    const sp = this._sp();
+    const ort = ORTE[sp] || "en-US";
+    // Achsen: drei Linien fuer Leistung, Zeitmarken unten.
+    let achsen = "";
+    [0, 0.5, 1].forEach((a) => {
+      const w = max * a;
+      achsen += `<line class="verlauf-gitter" x1="${L}" x2="${W - 6}" y1="${y(w).toFixed(1)}" y2="${y(w).toFixed(1)}"/>
+        <text class="verlauf-achse" x="${L - 6}" y="${(y(w) + 4).toFixed(1)}" text-anchor="end">${this._wText(w)}</text>`;
+    });
+    const marken = stunden > 24 ? 7 : 6;
+    const fmt = stunden > 24
+      ? new Intl.DateTimeFormat(ort, { weekday: "short" })
+      : new Intl.DateTimeFormat(ort, { hour: "2-digit", minute: "2-digit" });
+    for (let k = 0; k <= marken; k++) {
+      const t = t0 + ((t1 - t0) * k) / marken;
+      achsen += `<text class="verlauf-achse" x="${x(t).toFixed(1)}" y="${H - 6}" text-anchor="${k === 0 ? "start" : k === marken ? "end" : "middle"}">${fmt.format(new Date(t))}</text>`;
+    }
+    svg.innerHTML = `
+      <defs><linearGradient id="verlauf-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="${q.farbe}" stop-opacity="0.45"/>
+        <stop offset="1" stop-color="${q.farbe}" stop-opacity="0.03"/></linearGradient></defs>
+      ${achsen}
+      <path d="${flaeche}" fill="url(#verlauf-grad)" stroke="none"/>
+      <path d="${linie}" fill="none" stroke="${q.farbe}" stroke-width="2" stroke-linejoin="round"/>`;
+    // Kennzahlen: Mittel, Hoechstwert und Energie im Zeitraum.
+    let kwh = 0;
+    for (let k = 1; k < punkte.length; k++) {
+      kwh += ((punkte[k][0] - punkte[k - 1][0]) / 3600000) * punkte[k - 1][1] / 1000;
+    }
+    const mittel = werte.reduce((a, b) => a + b, 0) / werte.length;
+    const zahl = new Intl.NumberFormat(ort, { maximumFractionDigits: kwh < 10 ? 2 : 1 });
+    info.innerHTML = `<span>${escapeHtml(this._t("verlauf_mittel"))} <b>${this._wText(mittel)}</b></span>
+      <span>${escapeHtml(this._t("verlauf_max"))} <b>${this._wText(max)}</b></span>
+      <span>${escapeHtml(this._t("verlauf_energie"))} <b>${zahl.format(kwh)} kWh</b></span>`;
   }
 
   _el(id) {
@@ -1478,7 +1694,7 @@ class LutarymEnergyFlowCard extends HTMLElement {
    * Ein Knoten: Kreis mit Leuchtring, kleinem Symbol und Werten.
    * Alles innen ist relativ zur Kreismitte gezeichnet.
    */
-  _knoten({ id, pos, r, label: name, labelUnten, entity, entityId, icon, inhalt }) {
+  _knoten({ id, pos, r, label: name, labelUnten, entity, entityId, icon, inhalt, verlauf }) {
     const radius = r || G.R;
     const f = this._fs();
     // Ohne Namen bleibt nur der Kreis, der Rahmen schneidet den Platz weg.
@@ -1486,7 +1702,8 @@ class LutarymEnergyFlowCard extends HTMLElement {
     const ly = labelUnten ? radius + (radius > 40 ? 20 : 14) * f : -(radius + 12);
     return `
       <g class="node" id="dev-${id}" transform="translate(${pos.x} ${pos.y})"
-         ${entity ? `data-entity="${entity}"` : ""} ${entityId ? `data-entity-id="${escapeHtml(entityId)}"` : ""}>
+         ${entity ? `data-entity="${entity}"` : ""} ${entityId ? `data-entity-id="${escapeHtml(entityId)}"` : ""}
+         ${verlauf ? `data-verlauf="${verlauf}"` : ""}>
         <circle id="glow-${id}" class="node-glow" r="${radius}" opacity="0" filter="url(#glowBlur)"/>
         <circle class="node-bg" r="${radius}"/>
         <circle id="ring-${id}" class="node-ring" r="${radius}"/>
@@ -1677,13 +1894,13 @@ class LutarymEnergyFlowCard extends HTMLElement {
       ${plan.wb ? this._leitung("bus_wb", PLATZ_PFAD[plan.wb]) : ""}
       ${ex.map((_, i) => (plan[`ex${i}`] ? this._leitung(`ex_l${i}`, PLATZ_PFAD[plan[`ex${i}`]]) : "")).join("")}
       ${plan.wp ? this._knoten({ id: "wp", pos: PLAETZE[plan.wp], labelUnten: unten("wp"),
-        label: this._name("heatpump", "wp"), entity: "heatpump",
+        label: this._name("heatpump", "wp"), entity: "heatpump", verlauf: "wp",
         icon: ICON.wp, inhalt: this._werte("wp") }) : ""}
       ${plan.wb ? this._knoten({ id: "wb", pos: PLAETZE[plan.wb], labelUnten: unten("wb"),
-        label: this._name("wallbox"), entity: "wallbox",
+        label: this._name("wallbox"), entity: "wallbox", verlauf: "wb",
         icon: ICON.wb, inhalt: this._werte("wb") }) : ""}
       ${ex.map((v, i) => (!plan[`ex${i}`] ? "" : this._knoten({
-        id: `ex${i}`, labelUnten: unten(`ex${i}`), entityId: c.demo ? "" : v.id,
+        id: `ex${i}`, labelUnten: unten(`ex${i}`), entityId: c.demo ? "" : v.id, verlauf: `ex${i}`,
         pos: PLAETZE[plan[`ex${i}`]],
         label: kuerzen(v.name, 16),
         icon: SYMBOLE[v.symbol] || SYMBOLE.steckdose,
@@ -1762,15 +1979,27 @@ class LutarymEnergyFlowCard extends HTMLElement {
     const rohr = this._el(`pipe-${id}`);
     if (!spuren[0]) return;
     const dash = this._stil().dash;
-    const teile = (mix.teile || []).slice(0, 3);
+    // Quellen unter MISCH_MIN zaehlen nicht mit, der Rest wird neu auf 100 %
+    // gerechnet. Sonst schaltete die Leitung bei winzigen Anteilen dauernd
+    // zwischen einfarbig und gemischt hin und her.
+    // Eine schon gezeigte Quelle bleibt bis zur halben Schwelle sichtbar,
+    // eine neue erscheint erst ab der vollen Schwelle.
+    const gezeigt = this._mischFarben.get(id) || new Set();
+    let teile = (mix.teile || [])
+      .filter((t) => t.anteil >= (gezeigt.has(t.farbe) ? MISCH_MIN / 2 : MISCH_MIN)).slice(0, 3);
+    this._mischFarben.set(id, new Set(aktiv ? teile.map((t) => t.farbe) : []));
+    const summe = teile.reduce((a, t) => a + t.anteil, 0) || 1;
+    teile = teile.map((t) => ({ farbe: t.farbe, anteil: t.anteil / summe }));
     const gemischt = aktiv && teile.length > 1;
+    // Das Rohr bleibt immer neutral. Die Farben zeigen allein die Striche,
+    // damit beim Wechsel zwischen einer und mehreren Quellen keine farbige
+    // durchgehende Linie auftaucht und wieder verschwindet.
     if (rohr) {
-      // Bei gemischtem Strom bleibt das Rohr neutral, die Farben zeigen
-      // allein die Striche.
-      rohr.style.stroke = aktiv && !gemischt ? farbe : "";
-      rohr.classList.toggle("is-on", aktiv && !gemischt);
+      rohr.style.stroke = "";
+      rohr.classList.remove("is-on");
     }
-    const folge = gemischt ? strichFolge(teile) : null;
+    const folge = gemischt ? this._stabileFolge(id, teile) : null;
+    if (!gemischt) this._mischStand.delete(id);
     const laufend = [];
     spuren.forEach((el, k) => {
       const schein = scheine[k];
@@ -1814,6 +2043,24 @@ class LutarymEnergyFlowCard extends HTMLElement {
     } else {
       this._fluss.delete(id);
     }
+  }
+
+  /**
+   * Strichfolge mit Ruhezone: Die Aufteilung aendert sich erst, wenn sich
+   * ein Anteil um mehr als MISCH_RUHE gegenueber der gezeigten Aufteilung
+   * aendert oder eine Quelle dazukommt oder wegfaellt. Kleine Schwankungen
+   * der Messwerte lassen die Striche so nicht springen.
+   */
+  _stabileFolge(id, teile) {
+    const farben = teile.map((t) => t.farbe).join("|");
+    const alt = this._mischStand.get(id);
+    if (alt && alt.farben === farben &&
+        teile.every((t, k) => Math.abs(t.anteil - alt.anteile[k]) < MISCH_RUHE)) {
+      return alt.folge;
+    }
+    const folge = strichFolge(strichZahlen(teile));
+    this._mischStand.set(id, { farben, anteile: teile.map((t) => t.anteil), folge });
+    return folge;
   }
 
   /** Ring und Leuchten eines Knotens ein- oder ausschalten. */
@@ -2356,7 +2603,32 @@ class LutarymEnergyFlowCard extends HTMLElement {
       .knotenpunkt { fill: ${t.knoten}; stroke: ${t.rohr}; stroke-width: 2; }
       .info-rahmen { fill: ${t.infoBg}; stroke: ${t.infoRand}; stroke-width: 1.5; }
 
-      .node[data-entity], .node[data-entity-id] { cursor: pointer; }
+      .node[data-entity], .node[data-entity-id], .node[data-verlauf] { cursor: pointer; }
+      /* Verlauf eines Verbrauchers, liegt ueber der Zeichnung. */
+      .verlauf {
+        position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column;
+        background: ${t.bg}; color: ${t.text}; padding: 12px 14px; box-sizing: border-box;
+        font-family: Roboto, "Segoe UI", system-ui, -apple-system,
+          "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", Meiryo, sans-serif;
+      }
+      .verlauf[hidden] { display: none; }
+      .verlauf-kopf { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; }
+      .verlauf-kopf .titel { flex: 1 1 auto; }
+      .verlauf-kopf .zeit { font-weight: 600; font-size: 13px; color: ${t.sub}; }
+      .verlauf-kopf button {
+        background: none; border: 1px solid ${t.knotenRand}; color: ${t.text}; border-radius: 8px;
+        font-size: 13px; padding: 4px 10px; cursor: pointer;
+      }
+      .verlauf-kopf button.aktiv { background: ${t.knotenRand}; }
+      .verlauf-kopf .zu { font-size: 18px; line-height: 1; padding: 2px 9px; }
+      .verlauf-info { display: flex; gap: 18px; font-size: 13px; color: ${t.sub}; margin: 6px 0 4px; }
+      .verlauf-info b { color: ${t.wert}; }
+      .verlauf-flaeche { flex: 1 1 auto; min-height: 0; position: relative; }
+      .verlauf-flaeche svg { width: 100%; height: 100%; display: block; }
+      .verlauf-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+        color: ${t.sub}; font-size: 14px; text-align: center; padding: 0 20px; }
+      .verlauf-achse { fill: ${t.sub}; font-size: 11px; font-family: Roboto, "Segoe UI", system-ui, sans-serif; }
+      .verlauf-gitter { stroke: ${t.knotenRand}; stroke-width: 1; }
       .node-bg { fill: ${t.knoten}; stroke: ${t.knotenRand}; stroke-width: 2; }
       .node-glow { fill: none; stroke-width: 8; }
       .node-ring {

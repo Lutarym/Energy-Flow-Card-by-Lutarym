@@ -1,6 +1,6 @@
 # Energy Flow Card by Lutarym
 
-Version 1.5.0
+Version 1.6.0
 
 [English](README.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · **日本語**
 
@@ -21,7 +21,8 @@ Home Assistant 用のアニメーション付き Lovelace カードです。太�
 - 蓄電池のリングは充電率、家庭のリングは電気の出どころを表示
 - 右側に13種類のアニメーション付き蓄電池バー（lutarym-battery-card から採用）
 - 機器ごとに任意の追加行、例えば本日の発電量、往き温度、車の充電率
-- 機器をクリックすると Home Assistant でそのエンティティが開きます
+- ヒートポンプ、EV充電器、その他の機器をクリックすると、過去24時間または7日間の履歴（平均、最大、電力量）を表示。エリアにも対応。データは Home Assistant の統計から取得し、センサーには `state_class: measurement` が必要です
+- 太陽光、系統、蓄電池、家庭をクリックすると Home Assistant でそのエンティティが開きます
 - ビジュアルエディター、デモモード、英語、ドイツ語、フランス語、日本語
 
 ## 動作要件
